@@ -1,5 +1,4 @@
-import express, { Application } from 'express';
-import { Server } from 'http';
+import express, { Router } from 'express';
 import { Contact, InteractiveHeader, TemplateComponent } from './messages.types';
 import { SendMessageResult } from './sendRequestHelper';
 import { FreeFormObject } from './utils/misc';
@@ -15,13 +14,10 @@ export interface Message {
 }
 
 export interface Bot {
-  startExpressServer: (options?: {
-    app?: express.Application;
-    useMiddleware?: (app: express.Application) => void;
-    port?: number;
-    webhookPath?: string;
+  getExpressRoute: (options?: {
+    useMiddleware?: (app: express.Router) => void;
     webhookVerifyToken?: string;
-  }) => Promise<{ server?: Server; app: Application; }>;
+  }) => Router;
   on: (event: PubSubEvent, cb: (message: Message) => void) => string;
   unsubscribe: (token: string) => string | boolean;
 

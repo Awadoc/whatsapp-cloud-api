@@ -7,7 +7,7 @@ import {
   TextMessage,
 } from './messages.types';
 import { sendRequestHelper } from './sendRequestHelper';
-import { ExpressServer, startExpressServer } from './startExpressServer';
+import { getExpressRoute } from './startExpressServer';
 
 interface PaylodBase {
   messaging_product: 'whatsapp';
@@ -20,7 +20,6 @@ const payloadBase: PaylodBase = {
 };
 
 export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
-  let expressServer: ExpressServer;
   const sendRequest = sendRequestHelper(fromPhoneNumberId, accessToken, opts?.version);
 
   const getMediaPayload = (urlOrObjectId: string, options?: MediaBase) => ({
@@ -30,13 +29,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
   });
 
   return {
-    startExpressServer: async (options) => {
-      if (!expressServer) {
-        expressServer = await startExpressServer(options);
-      }
-
-      return expressServer;
-    },
+    getExpressRoute: (options) => getExpressRoute(options),
     on: (event, cb) => {
       const token = PubSub.subscribe(`bot-${fromPhoneNumberId}-${event}`, (_, data) => cb(data));
       return token;

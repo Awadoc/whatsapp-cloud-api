@@ -46,7 +46,8 @@ import { createBot } from 'whatsapp-cloud-api';
     const token = 'YOUR_TEMPORARY_OR_PERMANENT_ACCESS_TOKEN';
     const to = 'PHONE_NUMBER_OF_RECIPIENT';
     const webhookVerifyToken = 'YOUR_WEBHOOK_VERIFICATION_TOKEN';
-
+    // express app for routing
+    const app = express();
     // Create a bot that can send messages
     const bot = createBot(from, token);
 
@@ -56,8 +57,9 @@ import { createBot } from 'whatsapp-cloud-api';
     // Start express server to listen for incoming messages
     // NOTE: See below under `Documentation/Tutorial` to learn how
     // you can verify the webhook URL and make the server publicly available
-    await bot.startExpressServer({
-      webhookVerifyToken,
+    app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
+    app.listen(3000, () => {
+      console.log(`🚀 Server running on port ${3000}...`);
     });
 
     // Listen to ALL incoming messages

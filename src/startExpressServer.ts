@@ -1,38 +1,28 @@
-import express, { Application } from 'express';
-import { Server } from 'http';
+import express, { Router } from 'express';
 import PubSub from 'pubsub-js';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvent, PubSubEvents } from './utils/pubSub';
 import { Message } from './createBot.types';
 
 export interface ServerOptions {
-  app?: Application;
-  useMiddleware?: (app: Application) => void;
-  port?: number;
-  webhookPath?: string;
+  useMiddleware?: (app: Router) => void;
   webhookVerifyToken?: string;
 }
 
-export interface ExpressServer {
-  server?: Server;
-  app: Application;
-}
-
-export const startExpressServer = (
+export const getExpressRoute = (
   options?: ServerOptions,
-): Promise<ExpressServer> => new Promise((resolve) => {
-  const app = options?.app || express();
-
-  app.use(express.json());
+): Router => {
+  const router = Router();
+  router.use(express.json());
 
   if (options?.useMiddleware) {
-    options.useMiddleware(app);
+    options.useMiddleware(router);
   }
 
-  const webhookPath = options?.webhookPath || '/webhook/whatsapp';
+  const webhookPath = '/';
 
   if (options?.webhookVerifyToken) {
-    app.get(webhookPath, (req, res) => {
+    router.get(webhookPath, (req, res) => {
       if (!req.query) {
         res.sendStatus(403);
         return;
@@ -59,7 +49,7 @@ export const startExpressServer = (
     });
   }
 
-  app.post(webhookPath, async (req, res) => {
+  router.post(webhookPath, async (req, res) => {
     if (!req.body.object || !req.body.entry?.[0]?.changes?.[0]?.value) {
       res.sendStatus(400);
       return;
@@ -137,15 +127,5 @@ export const startExpressServer = (
     res.sendStatus(200);
   });
 
-  if (options?.app) {
-    resolve({ app });
-    return;
-  }
-
-  const port = options?.port || 3000;
-  const server = app.listen(port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`🚀 Server running on port ${port}...`);
-    resolve({ server, app });
-  });
-});
+  return router;
+};

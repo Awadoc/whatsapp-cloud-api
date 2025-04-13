@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { Server } from 'http';
-import { Application } from 'express';
+import express from 'express';
 import { createBot } from '.';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvents } from './utils/pubSub';
@@ -36,9 +36,10 @@ const webhookPath = process.env.WEBHOOK_PATH;
 if (!fromPhoneNumberId || !accessToken || !to || !webhookVerifyToken || !webhookPath) {
   throw new Error('Missing env variables');
 }
-
 describe('send functions', () => {
+  const app = express();
   const bot = createBot(fromPhoneNumberId, accessToken, { version });
+  app.use(webhookPath, bot.getExpressRoute);
 
   test('sends text', async () => {
     const result = await bot.sendText(to, 'Hello world', {
@@ -192,12 +193,16 @@ describe('send functions', () => {
 });
 
 describe('server functions', () => {
+  const app = express();
   const bot = createBot(fromPhoneNumberId, accessToken, { version });
   let server: Server | undefined;
-  let app: Application | undefined;
 
   beforeAll(async () => {
-    ({ server, app } = await bot.startExpressServer({ webhookVerifyToken }));
+    app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
+    server = app.listen(3000, () => {
+      // eslint-disable-next-line
+      console.log(`🚀 Server running on port ${3000}...`);
+    });
   });
 
   afterAll((): Promise<void> => new Promise((resolve) => {
