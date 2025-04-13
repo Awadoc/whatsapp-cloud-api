@@ -10,13 +10,13 @@ A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.co
 ## 🚀 Install
 
 ```bash
-npm install whatsapp-cloud-api
+npm install @awadoc/whatsapp-cloud-api
 ```
 
 or
 
 ```bash
-yarn add whatsapp-cloud-api
+yarn add @awadoc/whatsapp-cloud-api
 ```
 
 ---
