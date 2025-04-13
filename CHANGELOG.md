@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.0.1
+- Fix cases where message lenght is 0 throwing undefined
+- updating npm github link
 
 ## [1.0.0] - 2025-04-13
 ### Changed
