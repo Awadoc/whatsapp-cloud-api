@@ -1,5 +1,13 @@
 # CHANGELOG
 
+
+## [1.0.0] - 2025-04-13
+### Changed
+- Removed `bot.startExpressServer()` (breaking)
+- Now users must setup express manually using `bot.getExpressRoute()`
+- Upgraded base dependencies
+
+
 ## 0.3.1
 
 Fix README.md 404 error
