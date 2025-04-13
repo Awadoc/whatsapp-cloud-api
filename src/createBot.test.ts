@@ -199,7 +199,7 @@ describe('server functions', () => {
 
   beforeAll(async () => {
     app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
-    server = app.listen(3000, () => {
+    server = app.listen(3020, () => {
       // eslint-disable-next-line
       console.log(`🚀 Server running on port ${3020}...`);
     });
