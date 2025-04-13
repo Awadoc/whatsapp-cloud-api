@@ -201,7 +201,7 @@ describe('server functions', () => {
     app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
     server = app.listen(3000, () => {
       // eslint-disable-next-line
-      console.log(`🚀 Server running on port ${3000}...`);
+      console.log(`🚀 Server running on port ${3020}...`);
     });
   });
 
@@ -260,6 +260,7 @@ describe('server functions', () => {
       { entry: [] },
       { object: 'abcd', entry: [{ changes: [] }] },
       { object: 'abcd', entry: [{ changes: [{ value: { statuses: [] } }] }] },
+      { object: 'abcd', entry: [{ changes: [{ value: { messages: [] } }] }] },
     ];
 
     for (let i = 0; i < data.length; i += 1) {

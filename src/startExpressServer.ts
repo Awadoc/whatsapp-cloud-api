@@ -50,7 +50,11 @@ export const getExpressRoute = (
   }
 
   router.post(webhookPath, async (req, res) => {
-    if (!req.body.object || !req.body.entry?.[0]?.changes?.[0]?.value) {
+    if (
+      !req.body.object
+      || !req.body.entry?.[0]?.changes?.[0]?.value
+      || req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.length < 1
+    ) {
       res.sendStatus(400);
       return;
     }
@@ -65,7 +69,7 @@ export const getExpressRoute = (
       timestamp,
       type,
       ...rest
-    } = req.body.entry[0].changes[0].value.messages[0];
+    } = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0] ?? {};
     const fromPhoneNumberId = req.body.entry[0].changes[0].value.metadata.phone_number_id;
 
     let event: PubSubEvent | undefined;
