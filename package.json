@@ -56,7 +56,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tawn33y/whatsapp-cloud-api.git"
+    "url": "git+https://github.com/codad5/whatsapp-cloud-api.git"
   },
   "keywords": [
     "whatsapp",
@@ -79,9 +79,9 @@
   "author": "Tony <tawn33y@gmail.com>",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/tawn33y/whatsapp-cloud-api/issues"
+    "url": "https://github.com/codad5/whatsapp-cloud-api/issues"
   },
-  "homepage": "https://github.com/tawn33y/whatsapp-cloud-api#readme",
+  "homepage": "https://github.com/codad5/whatsapp-cloud-api#readme",
   "engines": {
     "node": ">=12"
   }
