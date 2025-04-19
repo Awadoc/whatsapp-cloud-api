@@ -95,7 +95,9 @@ export const getExpressRoute = (
       case 'interactive':
         event = rest.interactive.type;
         data = {
-          ...(rest.interactive.list_reply || rest.interactive.button_reply),
+          ...(rest.interactive.list_reply
+            || rest.interactive.button_reply
+            || rest.interactive?.nfm_reply),
         };
         break;
 

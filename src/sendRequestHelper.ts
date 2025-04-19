@@ -1,7 +1,8 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 
 // https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages
 interface OfficialSendMessageResult {
+  success:true
   messaging_product: 'whatsapp';
   contacts: {
     input: string;
@@ -16,30 +17,34 @@ export interface SendMessageResult {
   messageId: string;
   phoneNumber: string;
   whatsappId: string;
+  success?: boolean;
 }
 
-export const sendRequestHelper = (
+export const getAxiosClient = (
   fromPhoneNumberId: string,
   accessToken: string,
-  version: string = 'v14.0',
+  version: string = 'v20.0',
+) : AxiosInstance => axios.create({
+  baseURL: `https://graph.facebook.com/${version}/${fromPhoneNumberId}/messages`,
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
+
+export const sendRequestHelper = (
+  axiosClient: AxiosInstance,
 ) => async <T>(data: T): Promise<SendMessageResult> => {
   try {
-    const { data: rawResult } = await axios({
-      method: 'post',
-      url: `https://graph.facebook.com/${version}/${fromPhoneNumberId}/messages`,
-      data,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    });
+    const { data: rawResult } = await axiosClient.post('/', data);
     const result = rawResult as OfficialSendMessageResult;
 
     return {
-      messageId: result.messages?.[0]?.id,
-      phoneNumber: result.contacts?.[0]?.input,
-      whatsappId: result.contacts?.[0]?.wa_id,
+      messageId: result?.messages?.[0]?.id,
+      phoneNumber: result?.contacts?.[0]?.input,
+      whatsappId: result?.contacts?.[0]?.wa_id,
+      success: result?.success,
     };
   } catch (err: unknown) {
     if ((err as any).response) {

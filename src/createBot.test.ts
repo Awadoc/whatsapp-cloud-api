@@ -40,14 +40,23 @@ describe('send functions', () => {
   const app = express();
   const bot = createBot(fromPhoneNumberId, accessToken, { version });
   app.use(webhookPath, bot.getExpressRoute);
+  // let messageID = '';
 
   test('sends text', async () => {
     const result = await bot.sendText(to, 'Hello world', {
       preview_url: true,
     });
-
+    // messageID = result.messageId;
     expectSendMessageResult(result);
   });
+
+  // sent test for sendTypeIndicator
+  // test('sends text with sendTypeIndicator', async () => {
+  //   const result = await bot.sendTypeIndicator(messageID, 'read', {
+  //     type: 'text',
+  //   });
+  //   expectSendMessageResult(result);
+  // });
 
   test('sends message', async () => {
     const result = await bot.sendMessage(to, 'Hello world', {
@@ -190,6 +199,25 @@ describe('send functions', () => {
 
     expectSendMessageResult(result);
   });
+});
+
+test('mark send CTA url', async () => {
+  const bot = createBot(fromPhoneNumberId, accessToken, { version });
+  const result = await bot.sendCTAUrl(
+    to,
+    'Random body text',
+    'Click me',
+    'https://www.google.com',
+    {
+      footerText: 'Random footer text',
+      header: {
+        type: 'text',
+        text: 'Random header text',
+      },
+    },
+  );
+
+  expectSendMessageResult(result);
 });
 
 describe('server functions', () => {

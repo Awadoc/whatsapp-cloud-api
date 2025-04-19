@@ -5,8 +5,9 @@ import {
   ContactMessage, InteractiveMessage, LocationMessage,
   MediaBase, MediaMessage, TemplateMessage,
   TextMessage,
+  MarkAsRead,
 } from './messages.types';
-import { sendRequestHelper } from './sendRequestHelper';
+import { getAxiosClient, sendRequestHelper } from './sendRequestHelper';
 import { getExpressRoute } from './startExpressServer';
 
 interface PaylodBase {
@@ -20,7 +21,8 @@ const payloadBase: PaylodBase = {
 };
 
 export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
-  const sendRequest = sendRequestHelper(fromPhoneNumberId, accessToken, opts?.version);
+  const axiosClient = getAxiosClient(fromPhoneNumberId, accessToken, opts?.version);
+  const sendRequest = sendRequestHelper(axiosClient);
 
   const getMediaPayload = (urlOrObjectId: string, options?: MediaBase) => ({
     ...(isURL(urlOrObjectId) ? { link: urlOrObjectId } : { id: urlOrObjectId }),
@@ -158,6 +160,37 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
           })),
         },
       },
+    }),
+    sendCTAUrl: (to, bodyText, display_text, url, options) => sendRequest<InteractiveMessage>({
+      ...payloadBase,
+      to,
+      type: 'interactive',
+      interactive: {
+        body: {
+          text: bodyText,
+        },
+        ...(options?.footerText
+          ? {
+            footer: { text: options?.footerText },
+          }
+          : {}
+        ),
+        header: options?.header,
+        type: 'cta_url',
+        action: {
+          name: 'cta_url',
+          parameters: {
+            display_text,
+            url,
+          },
+        },
+      },
+    }),
+    markAsRead: (message_id, status, typing_indicator) => sendRequest<MarkAsRead>({
+      ...payloadBase,
+      status,
+      message_id,
+      typing_indicator,
     }),
   };
 };

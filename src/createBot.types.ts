@@ -1,5 +1,10 @@
 import express, { Router } from 'express';
-import { Contact, InteractiveHeader, TemplateComponent } from './messages.types';
+import {
+  Contact,
+  InteractiveHeader,
+  TemplateComponent,
+  MarkAsRead,
+} from './messages.types';
 import { SendMessageResult } from './sendRequestHelper';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
@@ -77,6 +82,17 @@ export interface Bot {
       header?: InteractiveHeader;
     },
   ) => Promise<SendMessageResult>;
+  sendCTAUrl: (
+    to: string,
+    bodyText: string,
+    display_text: string,
+    url: `http://${string}` | `https://${string}`,
+    options?: {
+      footerText?: string,
+      header?: InteractiveHeader;
+    },
+  ) => Promise<SendMessageResult>;
+  markAsRead: (message_id: string, status: MarkAsRead['status'], typing_indicator?: MarkAsRead['typing_indicator']) => Promise<SendMessageResult>;
 }
 
 export type ICreateBot = (

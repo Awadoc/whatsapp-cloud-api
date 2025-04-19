@@ -96,6 +96,45 @@ export interface InteractiveReplyButton {
   };
 }
 
+export interface InteractiveURL {
+  type: 'cta_url';
+  action: {
+    name: 'cta_url';
+    parameters: {
+      display_text: string;
+      url:`http://${string}` | `https://${string}`;
+    }
+  };
+}
+
+export type BaseFlowParameters = {
+  flow_message_version: '3';
+  flow_token?: string;
+  flow_cta: string;
+  mode?: 'draft' | 'published';
+} & {
+  flow_action?: 'navigate'
+  flow_action_payload?: string | {
+    screen: string
+    data: {
+      [key: string]: string | number | boolean | null;
+    }
+  }
+} & {
+  flow_action?: 'data_exchange'
+};
+export interface InteractiveFlow {
+  type: 'flow';
+  action: {
+    name: 'flow';
+    parameters: BaseFlowParameters & ({
+      flow_id: string;
+    } | {
+      flow_name: string;
+    })
+  };
+}
+
 export interface InteractiveListMessage {
   type: 'list';
   action: {
@@ -111,7 +150,10 @@ export interface InteractiveListMessage {
   };
 }
 
-type Interactive = InteractiveBase & (InteractiveReplyButton | InteractiveListMessage);
+type Interactive = InteractiveBase & (
+  InteractiveReplyButton |
+  InteractiveListMessage |
+  InteractiveURL);
 
 export interface Location {
   longitude: number;
@@ -196,6 +238,18 @@ interface TemplateComponentTypeButtonUrl {
     text: string;
   }[];
 }
+interface TemplateComponentTypeButtonFlow {
+  sub_type: 'flow';
+  parameters: {
+    type?: 'payload' | 'text';
+    action: {
+      flow_token: string;
+      flow_action_data: {
+        [key: string]: string | number | boolean | object
+      }
+    }
+  }[];
+}
 
 interface TemplateComponentTypeButtonBase {
   type: 'button';
@@ -204,6 +258,7 @@ interface TemplateComponentTypeButtonBase {
 
 type TemplateComponentTypeButton = TemplateComponentTypeButtonBase & (
   TemplateComponentTypeButtonQuickReply | TemplateComponentTypeButtonUrl
+  | TemplateComponentTypeButtonFlow
 );
 
 export type TemplateComponent = TemplateComponentTypeHeader | TemplateComponentTypeBody |
@@ -271,6 +326,14 @@ export interface TextMessage extends Message {
 export interface VideoMessage extends Message {
   type: 'video';
   video: Media;
+}
+export interface MarkAsRead {
+  messaging_product:'whatsapp';
+  message_id: string;
+  status:'read'
+  typing_indicator?: {
+    type: 'text';
+  }
 }
 
 export type MediaMessage = AudioMessage | DocumentMessage | ImageMessage |
