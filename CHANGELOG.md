@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.2.0
+### Added
+- New method: `sendCTAUrl` to send call-to-action links with buttons.
+- New method: `markAsRead` with optional `typing_indicator` support to simulate bot typing behavior.
+- Extended internal event system to handle more WhatsApp message types beyond basic text.
+
+
+## 1.0.2
+- Bug fix on reading from undefined 
+
 ## 1.0.1
 - Fix cases where message lenght is 0 throwing undefined
 - updating npm github link
