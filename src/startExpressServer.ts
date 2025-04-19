@@ -70,7 +70,7 @@ export const getExpressRoute = (
       type,
       ...rest
     } = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0] ?? {};
-    const fromPhoneNumberId = req.body.entry[0].changes[0].value.metadata.phone_number_id;
+    const fromPhoneNumberId = req.body.entry[0].changes[0].value?.metadata?.phone_number_id;
 
     let event: PubSubEvent | undefined;
     let data: FreeFormObject | undefined;
