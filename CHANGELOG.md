@@ -1,5 +1,10 @@
 # CHANGELOG
 
+
+## 1.1.1
+### Added
+- Support Contextual replies 
+
 ## 1.1.0
 ### Added
 - New method: `sendCTAUrl` to send call-to-action links with buttons.
