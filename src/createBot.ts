@@ -46,6 +46,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         body: text,
         preview_url: options?.preview_url,
       },
+      context: options?.context,
     }),
     sendMessage(to, text, options) {
       return this.sendText(to, text, options);
@@ -55,30 +56,36 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       to,
       type: 'image',
       image: getMediaPayload(urlOrObjectId, options),
+      context: options?.context,
     }),
     sendDocument: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
       ...payloadBase,
       to,
       type: 'document',
       document: getMediaPayload(urlOrObjectId, options),
+      context: options?.context,
     }),
-    sendAudio: (to, urlOrObjectId) => sendRequest<MediaMessage>({
+    sendAudio: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
       ...payloadBase,
       to,
       type: 'audio',
       audio: getMediaPayload(urlOrObjectId),
+      context: options?.context,
     }),
     sendVideo: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
       ...payloadBase,
       to,
       type: 'video',
       video: getMediaPayload(urlOrObjectId, options),
+
+      context: options?.context,
     }),
-    sendSticker: (to, urlOrObjectId) => sendRequest<MediaMessage>({
+    sendSticker: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
       ...payloadBase,
       to,
       type: 'sticker',
       sticker: getMediaPayload(urlOrObjectId),
+      context: options?.context,
     }),
     sendLocation: (to, latitude, longitude, options) => sendRequest<LocationMessage>({
       ...payloadBase,
@@ -90,8 +97,9 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         name: options?.name,
         address: options?.address,
       },
+      context: options?.context,
     }),
-    sendTemplate: (to, name, languageCode, components) => sendRequest<TemplateMessage>({
+    sendTemplate: (to, name, languageCode, components, options) => sendRequest<TemplateMessage>({
       ...payloadBase,
       to,
       type: 'template',
@@ -102,17 +110,20 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         },
         components,
       },
+      context: options?.context,
     }),
-    sendContacts: (to, contacts) => sendRequest<ContactMessage>({
+    sendContacts: (to, contacts, options) => sendRequest<ContactMessage>({
       ...payloadBase,
       to,
       type: 'contacts',
       contacts,
+      context: options?.context,
     }),
     sendReplyButtons: (to, bodyText, buttons, options) => sendRequest<InteractiveMessage>({
       ...payloadBase,
       to,
       type: 'interactive',
+      context: options?.context,
       interactive: {
         body: {
           text: bodyText,
@@ -140,6 +151,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       ...payloadBase,
       to,
       type: 'interactive',
+      context: options?.context,
       interactive: {
         body: {
           text: bodyText,
@@ -165,6 +177,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       ...payloadBase,
       to,
       type: 'interactive',
+      context: options?.context,
       interactive: {
         body: {
           text: bodyText,

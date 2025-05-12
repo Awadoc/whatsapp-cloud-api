@@ -2,10 +2,13 @@ import type { RequireAtLeastOne } from 'type-fest';
 
 // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
 
-interface Message {
+export interface Message {
   messaging_product: 'whatsapp';
   recipient_type: 'individual';
   to: string;
+  context?: {
+    message_id:string
+  }
 }
 
 interface ContactName {
