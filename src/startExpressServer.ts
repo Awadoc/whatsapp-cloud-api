@@ -129,7 +129,7 @@ export const getExpressRoute = (options?: ServerOptions): Router => {
         ?? undefined;
 
     if (event && data) {
-      const payload: Message<typeof event> = {
+      const payload: Message = {
         from,
         name,
         id,
