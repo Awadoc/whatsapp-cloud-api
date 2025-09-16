@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.2
+### Fixed
+- Fix default type parameter for Message interface to ensure proper type inference
+
 ## 2.0.1
 ### Fixed
 - Minor type definition fixes and improvements for better developer experience

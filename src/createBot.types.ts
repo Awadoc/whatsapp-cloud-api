@@ -11,7 +11,7 @@ import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
 export interface Message<
-  K extends keyof FreeFormObjectMap,
+  K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
   from: string;
   name: string | undefined;
