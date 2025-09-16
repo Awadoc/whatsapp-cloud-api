@@ -1,6 +1,6 @@
 // In utils/misc.ts - Complete type definitions
 export interface FreeFormObjectMap {
-  message: MessageDataWithContext;
+  // message: MessageDataWithContext;
   text: { text: string };
   image: {
     caption?: string;
@@ -113,10 +113,8 @@ export interface FreeFormObjectMap {
 }
 
 // Create a conditional type for better constraint handling
-export type FreeFormObject<K extends keyof FreeFormObjectMap> =
-  K extends 'message'
-    ? MessageDataWithContext // Special handling for 'message' type
-    : FreeFormObjectMap[K] & { context?: any };
+export type FreeFormObject<K extends keyof FreeFormObjectMap>
+  = FreeFormObjectMap[K] & { context?: any };
 
 // Union type for all specific message data types (excluding 'message')
 export type SpecificMessageData = FreeFormObjectMap[keyof Omit<
@@ -125,7 +123,7 @@ FreeFormObjectMap,
 >];
 
 // Message data with context for the generic 'message' type
-type MessageDataWithContext = SpecificMessageData & { context?: any };
+// type MessageDataWithContext = SpecificMessageData & { context?: any };
 
 // Keep the existing MessageData export
 export type MessageData = FreeFormObject<keyof FreeFormObjectMap>;

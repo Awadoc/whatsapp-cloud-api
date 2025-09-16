@@ -7,22 +7,25 @@ import {
   Message as WhatsappMessageObject,
 } from './messages.types';
 import { SendMessageResult } from './sendRequestHelper';
-import { FreeFormObject } from './utils/misc';
+import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
 export interface Message<
-  K extends PubSubEvent | 'message' = PubSubEvent | 'message',
+  K extends keyof FreeFormObjectMap,
 > {
   from: string;
   name: string | undefined;
   id: string;
   timestamp: string;
-  type: K extends 'message' ? PubSubEvent : K;
-  data: K extends 'message'
-    ? FreeFormObject<Exclude<PubSubEvent, 'message'>> // Union of all possible data types
-    : FreeFormObject<K>;
+  type: K;
+  data: FreeFormObject<K>;
 }
-export type MessageEventCallback = (message: Message<'message'>) => void;
+
+export type AllPossibleMessages = {
+  [K in keyof FreeFormObjectMap]: Message<K>;
+}[keyof FreeFormObjectMap];
+
+export type MessageEventCallback = (message: AllPossibleMessages) => void;
 export type SpecificEventCallback<K extends PubSubEvent> = (
   message: Message<K>
 ) => void;

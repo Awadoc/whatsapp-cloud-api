@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2.0.1
+### Fixed
+- Minor type definition fixes and improvements for better developer experience
 
 ## 2.0.0
 ### Added

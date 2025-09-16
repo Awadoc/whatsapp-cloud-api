@@ -2,7 +2,7 @@ import { FreeFormObjectMap } from './misc';
 
 // In utils/pubSub.ts - Add new event types
 export const PubSubEvents = {
-  message: 'message',
+  // message: 'message',
   text: 'text',
   image: 'image',
   document: 'document',
@@ -18,6 +18,9 @@ export const PubSubEvents = {
   reaction: 'reaction',
   order: 'order',
   system: 'system',
-} as const satisfies Record<keyof FreeFormObjectMap, keyof FreeFormObjectMap>;
+} as const satisfies Record<
+keyof FreeFormObjectMap,
+keyof FreeFormObjectMap
+>;
 
 export type PubSubEvent = keyof typeof PubSubEvents;
