@@ -10,14 +10,22 @@ import { SendMessageResult } from './sendRequestHelper';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
-export interface Message {
+export interface Message<
+  K extends PubSubEvent | 'message' = PubSubEvent | 'message',
+> {
   from: string;
   name: string | undefined;
   id: string;
   timestamp: string;
-  type: PubSubEvent;
-  data: FreeFormObject; // TODO: properly define interfaces for each type
+  type: K extends 'message' ? PubSubEvent : K;
+  data: K extends 'message'
+    ? FreeFormObject<Exclude<PubSubEvent, 'message'>> // Union of all possible data types
+    : FreeFormObject<K>;
 }
+export type MessageEventCallback = (message: Message<'message'>) => void;
+export type SpecificEventCallback<K extends PubSubEvent> = (
+  message: Message<K>
+) => void;
 
 // 👇 Base option for all send methods
 export type BaseOptionType = {
@@ -30,7 +38,8 @@ export interface Bot {
     webhookVerifyToken?: string;
   }) => Router;
 
-  on: (event: PubSubEvent, cb: (message: Message) => void) => string;
+  on(event: 'message', cb: MessageEventCallback): string;
+  on<K extends PubSubEvent>(event: K, cb: SpecificEventCallback<K>): string;
   unsubscribe: (token: string) => string | boolean;
 
   sendText: (

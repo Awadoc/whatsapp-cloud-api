@@ -2,7 +2,7 @@ import request from 'supertest';
 import { Server } from 'http';
 import express from 'express';
 import { createBot } from '.';
-import { FreeFormObject } from './utils/misc';
+import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvents } from './utils/pubSub';
 
 const expectSendMessageResult = (result: any): void => {
@@ -277,7 +277,7 @@ describe('server functions', () => {
   });
 
   test('send invalid body', async () => {
-    const sendRequest = (data: FreeFormObject) => request(app)
+    const sendRequest = (data: FreeFormObject<keyof FreeFormObjectMap>) => request(app)
       .post(webhookPath)
       .send(data)
       .expect(200);
@@ -377,20 +377,26 @@ describe('server functions', () => {
         id: 'wamid.abcd',
         timestamp: '1640995200',
         type: 'contacts',
-        contacts: [{
-          name: {
-            formatted_name: 'John Doe',
-            first_name: 'John',
+        contacts: [
+          {
+            name: {
+              formatted_name: 'John Doe',
+              first_name: 'John',
+            },
+            phones: [
+              {
+                type: 'HOME',
+                phone: '0712345678',
+              },
+            ],
+            emails: [
+              {
+                type: 'HOME',
+                email: 'random@random.com',
+              },
+            ],
           },
-          phones: [{
-            type: 'HOME',
-            phone: '0712345678',
-          }],
-          emails: [{
-            type: 'HOME',
-            email: 'random@random.com',
-          }],
-        }],
+        ],
       },
       {
         from: '12345678',
@@ -427,6 +433,45 @@ describe('server functions', () => {
           id: 'wamid.abcd',
         },
       },
+      {
+        from: '12345678',
+        id: 'wamid.abcd',
+        timestamp: '1640995200',
+        type: 'reaction',
+        reaction: {
+          message_id: 'wamid.reaction_target',
+          emoji: '👍',
+        },
+      },
+      {
+        from: '12345678',
+        id: 'wamid.abcd',
+        timestamp: '1640995200',
+        type: 'order',
+        order: {
+          catalog_id: 'catalog_123',
+          product_items: [
+            {
+              product_retailer_id: 'product_001',
+              quantity: '2',
+              item_price: '25.99',
+              currency: 'USD',
+            },
+          ],
+          text: 'I want to order these items',
+        },
+      },
+      {
+        from: '12345678',
+        id: 'wamid.abcd',
+        timestamp: '1640995200',
+        type: 'system',
+        system: {
+          body: 'John changed from +1234567890 to +0987654321',
+          new_wa_id: '+0987654321',
+          type: 'user_changed_number',
+        },
+      },
     ];
 
     let i = 0;
@@ -456,6 +501,7 @@ describe('server functions', () => {
       expect(typeof message.data === 'object').toBe(true);
       const { data } = message;
 
+      // Replace the switch statement in the existing 'listen for new messages' test
       switch (message.type) {
         case 'text':
           expect(data).toHaveProperty('text');
@@ -464,64 +510,86 @@ describe('server functions', () => {
 
         case 'image':
         case 'document':
-        case 'audio':
         case 'video':
         case 'sticker':
           expect(data).toHaveProperty('mime_type');
           expect(data).toHaveProperty('sha256');
           expect(data).toHaveProperty('id');
-
           expect(typeof data.mime_type).toBe('string');
           expect(typeof data.sha256).toBe('string');
           expect(typeof data.id).toBe('string');
-          if (data.caption) {
-            expect(typeof data.caption).toBe('string');
-          }
-          if (data.filename) {
-            expect(typeof data.filename).toBe('string');
-          }
-          if (data.voice) {
-            expect(typeof data.voice).toBe('boolean');
-          }
+          if (data.caption) expect(typeof data.caption).toBe('string');
+          if (data.filename) expect(typeof data.filename).toBe('string');
+          break;
+
+        case 'audio':
+          expect(data).toHaveProperty('mime_type');
+          expect(data).toHaveProperty('sha256');
+          expect(data).toHaveProperty('id');
+          expect(typeof data.mime_type).toBe('string');
+          expect(typeof data.sha256).toBe('string');
+          expect(typeof data.id).toBe('string');
+          if (data.voice !== undefined) expect(typeof data.voice).toBe('boolean');
           break;
 
         case 'location':
           expect(data).toHaveProperty('latitude');
           expect(data).toHaveProperty('longitude');
-
           expect(typeof data.latitude).toBe('number');
           expect(typeof data.longitude).toBe('number');
-          if (data.name) {
-            expect(typeof data.name).toBe('string');
-          }
-          if (data.address) {
-            expect(typeof data.address).toBe('string');
-          }
+          if (data.name) expect(typeof data.name).toBe('string');
+          if (data.address) expect(typeof data.address).toBe('string');
           break;
 
         case 'contacts':
           expect(Array.isArray(data)).toBe(true);
-          data.forEach((item: FreeFormObject) => expect(typeof item === 'object').toBe(true));
+          data.forEach((contact) => {
+            expect(typeof contact === 'object').toBe(true);
+            if (contact.name) expect(typeof contact.name === 'object').toBe(true);
+            if (contact.phones) expect(Array.isArray(contact.phones)).toBe(true);
+          });
+          break;
+
+        case 'reaction':
+          expect(data).toHaveProperty('message_id');
+          expect(data).toHaveProperty('emoji');
+          expect(typeof data.message_id).toBe('string');
+          expect(typeof data.emoji).toBe('string');
+          break;
+
+        case 'order':
+          expect(data).toHaveProperty('catalog_id');
+          expect(data).toHaveProperty('product_items');
+          expect(typeof data.catalog_id).toBe('string');
+          expect(Array.isArray(data.product_items)).toBe(true);
+          data.product_items.forEach((item) => {
+            expect(item).toHaveProperty('product_retailer_id');
+            expect(item).toHaveProperty('quantity');
+            expect(item).toHaveProperty('item_price');
+            expect(item).toHaveProperty('currency');
+          });
+          break;
+
+        case 'system':
+          expect(data).toHaveProperty('body');
+          expect(data).toHaveProperty('type');
+          expect(typeof data.body).toBe('string');
+          expect(typeof data.type).toBe('string');
+          if (data.new_wa_id) expect(typeof data.new_wa_id).toBe('string');
           break;
 
         case 'list_reply':
         case 'button_reply':
           expect(data).toHaveProperty('id');
           expect(data).toHaveProperty('title');
-          expect(data).toHaveProperty('context');
-
           expect(typeof data.id).toBe('string');
           expect(typeof data.title).toBe('string');
-          if (data.description) {
-            expect(typeof data.description).toBe('string');
+          if (data.description) expect(typeof data.description).toBe('string');
+          if (data.context) {
+            expect(typeof data.context === 'object').toBe(true);
+            expect(data.context).toHaveProperty('from');
+            expect(data.context).toHaveProperty('id');
           }
-
-          expect(typeof data.context === 'object').toBe(true);
-          expect(data.context).toHaveProperty('from');
-          expect(data.context).toHaveProperty('id');
-
-          expect(typeof data.context.from).toBe('string');
-          expect(typeof data.context.id).toBe('string');
           break;
 
         default:

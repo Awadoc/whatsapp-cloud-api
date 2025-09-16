@@ -9,9 +9,7 @@ export interface ServerOptions {
   webhookVerifyToken?: string;
 }
 
-export const getExpressRoute = (
-  options?: ServerOptions,
-): Router => {
+export const getExpressRoute = (options?: ServerOptions): Router => {
   const router = Router();
   router.use(express.json());
 
@@ -64,16 +62,12 @@ export const getExpressRoute = (
     }
 
     const {
-      from,
-      id,
-      timestamp,
-      type,
-      ...rest
+      from, id, timestamp, type, ...rest
     } = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0] ?? {};
     const fromPhoneNumberId = req.body.entry[0].changes[0].value?.metadata?.phone_number_id;
 
     let event: PubSubEvent | undefined;
-    let data: FreeFormObject | undefined;
+    let data: FreeFormObject<typeof event> | undefined;
 
     switch (type) {
       case 'text':
@@ -101,6 +95,21 @@ export const getExpressRoute = (
         };
         break;
 
+      case 'reaction':
+        event = PubSubEvents.reaction;
+        data = rest.reaction as FreeFormObject<'reaction'>;
+        break;
+
+      case 'order':
+        event = PubSubEvents.order;
+        data = rest.order as FreeFormObject<'order'>;
+        break;
+
+      case 'system':
+        event = PubSubEvents.system;
+        data = rest.system as FreeFormObject<'system'>;
+        break;
+
       default:
         break;
     }
@@ -112,16 +121,21 @@ export const getExpressRoute = (
       };
     }
 
-    const name = req.body.entry[0].changes[0].value.contacts?.[0]?.profile?.name ?? undefined;
+    // In startExpressServer.ts - Around line 85-90, replace the name assignment
+    const isSystemMessage = type === 'system';
+    const name = isSystemMessage
+      ? undefined
+      : req.body.entry[0].changes[0].value.contacts?.[0]?.profile?.name
+        ?? undefined;
 
     if (event && data) {
-      const payload: Message = {
+      const payload: Message<typeof event> = {
         from,
         name,
         id,
         timestamp,
         type: event,
-        data,
+        data: rest.context ? { ...data, context: rest.context } : data,
       };
 
       [
