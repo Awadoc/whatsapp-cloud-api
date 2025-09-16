@@ -1,6 +1,34 @@
 # CHANGELOG
 
 
+## 2.0.0
+### Added
+- **BREAKING**: Comprehensive type safety with generic constraints for all message types
+- **BREAKING**: Enhanced `FreeFormObjectMap` with complete type definitions for all WhatsApp message types
+- New message type support: `reaction`, `order`, `system` messages
+- Type-safe message event handlers with proper TypeScript inference
+- Generic `'message'` event that receives all message types with proper type narrowing
+- Specific event handlers with constrained types (e.g., `bot.on('text', ...)` receives only text messages)
+
+### Changed  
+- **BREAKING**: `FreeFormObject` now uses strict typing instead of `any` for better type safety
+- **BREAKING**: Message data structures now have specific interfaces instead of generic objects
+- Enhanced PubSubEvents enum to be automatically derived from FreeFormObjectMap keys
+- Improved TypeScript inference for message handling with conditional types
+
+### Enhanced
+- Complete type definitions for all media message types (image, document, audio, video, sticker)
+- Full contact message structure with all WhatsApp contact fields
+- Location message with proper coordinate and address types
+- Interactive message types (button_reply, list_reply) with complete structures
+
+### Developer Experience
+- Better IDE autocompletion and type checking
+- Compile-time type safety prevents runtime errors from incorrect data access
+- Type narrowing in switch statements provides accurate intellisense
+- Generic message handlers can safely handle all message types while maintaining type information
+
+
 ## 1.1.1
 ### Added
 - Support Contextual replies 
