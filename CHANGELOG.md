@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.3
+### Fixed
+- Refactor Message interface to GenericMessage for improved type handling and update related type definitions
+
 ## 2.0.2
 ### Fixed
 - Fix default type parameter for Message interface to ensure proper type inference

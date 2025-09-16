@@ -10,7 +10,7 @@ import { SendMessageResult } from './sendRequestHelper';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
-export interface Message<
+export interface GenericMessage<
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
   from: string;
@@ -22,12 +22,14 @@ export interface Message<
 }
 
 export type AllPossibleMessages = {
-  [K in keyof FreeFormObjectMap]: Message<K>;
+  [K in keyof FreeFormObjectMap]: GenericMessage<K>;
 }[keyof FreeFormObjectMap];
 
-export type MessageEventCallback = (message: AllPossibleMessages) => void;
+export type Message = AllPossibleMessages;
+
+export type MessageEventCallback = (message: Message) => void;
 export type SpecificEventCallback<K extends PubSubEvent> = (
-  message: Message<K>
+  message: GenericMessage<K>
 ) => void;
 
 // 👇 Base option for all send methods
