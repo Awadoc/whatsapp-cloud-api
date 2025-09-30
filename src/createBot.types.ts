@@ -175,7 +175,8 @@ export interface Bot {
 
   uploadMedia: (
     filePath: string | URL | Buffer,
-    mimeType?: string | null
+    mimeType?: string | null,
+    filename?: string
   ) => Promise<UploadMediaResult>;
 }
 

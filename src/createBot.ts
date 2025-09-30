@@ -227,11 +227,15 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       message_id,
       typing_indicator,
     }),
-    uploadMedia: async (filePathInput, mimeType) => {
-      // Handle both string and path object
-      let filePath: string;
+    uploadMedia: async (filePathInput, mimeType, filename) => {
+      let filePath: string | undefined;
+      let fileBuffer: Buffer | undefined;
+      let fileName: string = filename || 'file';
+
+      // Handle different input types
       if (typeof filePathInput === 'string') {
         filePath = filePathInput;
+        fileName = path.basename(filePath);
       } else if (filePathInput instanceof URL) {
         // For URL objects with file:// protocol, extract the pathname
         filePath = filePathInput.protocol === 'file:'
@@ -241,25 +245,47 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         if (process.platform === 'win32' && filePath.startsWith('/')) {
           filePath = filePath.slice(1);
         }
+        fileName = path.basename(filePath);
+      } else if (Buffer.isBuffer(filePathInput)) {
+        // Handle Buffer input directly
+        fileBuffer = filePathInput;
+        fileName = fileName !== 'file' ? fileName : 'buffer-file';
       } else {
-        filePath = filePathInput.toString();
+        throw new Error(
+          'Invalid file input type. Expected string path, URL, or Buffer.',
+        );
       }
 
-      // Auto-detect MIME type if not provided
-      const detectedMimeType = mimeType || mime.lookup(filePath);
+      // Auto-detect MIME type if not provided (only works for file paths)
+      let detectedMimeType = mimeType;
+      if (!detectedMimeType && filePath) {
+        detectedMimeType = mime.lookup(filePath) || undefined;
+      }
 
       if (!detectedMimeType) {
         throw new Error(
-          `Could not determine MIME type for file: ${filePath}. Please provide mimeType explicitly.`,
+          `Could not determine MIME type for file${
+            filePath ? `: ${filePath}` : ''
+          }. Please provide mimeType explicitly.`,
         );
       }
 
       const formData = new FormData();
       formData.append('messaging_product', 'whatsapp');
-      formData.append('file', fs.createReadStream(filePath), {
-        contentType: detectedMimeType,
-        filename: path.basename(filePath),
-      });
+
+      if (fileBuffer) {
+        // Append buffer directly
+        formData.append('file', fileBuffer, {
+          contentType: detectedMimeType,
+          filename: fileName,
+        });
+      } else if (filePath) {
+        // Append file stream
+        formData.append('file', fs.createReadStream(filePath), {
+          contentType: detectedMimeType,
+          filename: fileName,
+        });
+      }
 
       return uploadMediaRequest(formData);
     },
