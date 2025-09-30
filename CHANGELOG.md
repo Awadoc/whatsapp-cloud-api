@@ -1,19 +1,50 @@
 # CHANGELOG
 
+## 2.1.0
+
+### Added
+
+- New method: `uploadMedia` to upload media files to WhatsApp Cloud API
+  - Supports automatic MIME type detection from file extensions
+  - Accepts string paths, URL objects, or Buffer inputs
+  - Optional MIME type parameter (auto-detected if not provided)
+  - Returns media ID for use with send methods
+
+### Changed
+
+- Refactored `sendRequestHelper` to support multiple API endpoints (messages and media)
+- Split axios client creation into separate functions: `getMessagesAxiosClient` and `getMediaAxiosClient`
+- Moved type definitions to `sendRequestHelper.types.ts` for better organization
+- Enhanced type safety with `ApiPathResponseMap` and `PathResponse` generic types
+
+### Enhanced
+
+- Improved internal architecture for handling different WhatsApp API endpoints
+- Better separation of concerns between message sending and media uploading
+- Type-safe response transformation based on API path
+
 ## 2.0.3
+
 ### Fixed
+
 - Refactor Message interface to GenericMessage for improved type handling and update related type definitions
 
 ## 2.0.2
+
 ### Fixed
+
 - Fix default type parameter for Message interface to ensure proper type inference
 
 ## 2.0.1
+
 ### Fixed
+
 - Minor type definition fixes and improvements for better developer experience
 
 ## 2.0.0
+
 ### Added
+
 - **BREAKING**: Comprehensive type safety with generic constraints for all message types
 - **BREAKING**: Enhanced `FreeFormObjectMap` with complete type definitions for all WhatsApp message types
 - New message type support: `reaction`, `order`, `system` messages
@@ -21,49 +52,57 @@
 - Generic `'message'` event that receives all message types with proper type narrowing
 - Specific event handlers with constrained types (e.g., `bot.on('text', ...)` receives only text messages)
 
-### Changed  
+### Changed
+
 - **BREAKING**: `FreeFormObject` now uses strict typing instead of `any` for better type safety
 - **BREAKING**: Message data structures now have specific interfaces instead of generic objects
 - Enhanced PubSubEvents enum to be automatically derived from FreeFormObjectMap keys
 - Improved TypeScript inference for message handling with conditional types
 
 ### Enhanced
+
 - Complete type definitions for all media message types (image, document, audio, video, sticker)
 - Full contact message structure with all WhatsApp contact fields
 - Location message with proper coordinate and address types
 - Interactive message types (button_reply, list_reply) with complete structures
 
 ### Developer Experience
+
 - Better IDE autocompletion and type checking
 - Compile-time type safety prevents runtime errors from incorrect data access
 - Type narrowing in switch statements provides accurate intellisense
 - Generic message handlers can safely handle all message types while maintaining type information
 
-
 ## 1.1.1
+
 ### Added
-- Support Contextual replies 
+
+- Support Contextual replies
 
 ## 1.1.0
+
 ### Added
+
 - New method: `sendCTAUrl` to send call-to-action links with buttons.
 - New method: `markAsRead` with optional `typing_indicator` support to simulate bot typing behavior.
 - Extended internal event system to handle more WhatsApp message types beyond basic text.
 
-
 ## 1.0.2
-- Bug fix on reading from undefined 
+
+- Bug fix on reading from undefined
 
 ## 1.0.1
+
 - Fix cases where message lenght is 0 throwing undefined
 - updating npm github link
 
 ## [1.0.0] - 2025-04-13
+
 ### Changed
+
 - Removed `bot.startExpressServer()` (breaking)
 - Now users must setup express manually using `bot.getExpressRoute()`
 - Upgraded base dependencies
-
 
 ## 0.3.1
 
@@ -127,7 +166,6 @@ Utilizes a more cleaner API:
   - sendContacts(to, contacts)
   - sendReplyButtons(to, bodyText, buttons, [options])
   - sendList(to, buttonName, bodyText, sections, [options])
-
 
 ## 0.1.0-alpha
 

@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { Server } from 'http';
 import express from 'express';
+import path from 'path';
 import { createBot } from '.';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvents } from './utils/pubSub';
@@ -33,7 +34,13 @@ const to = process.env.TO;
 const webhookVerifyToken = process.env.WEBHOOK_VERIFY_TOKEN;
 const webhookPath = process.env.WEBHOOK_PATH;
 
-if (!fromPhoneNumberId || !accessToken || !to || !webhookVerifyToken || !webhookPath) {
+if (
+  !fromPhoneNumberId
+  || !accessToken
+  || !to
+  || !webhookVerifyToken
+  || !webhookPath
+) {
   throw new Error('Missing env variables');
 }
 describe('send functions', () => {
@@ -75,24 +82,35 @@ describe('send functions', () => {
   });
 
   test('sends document', async () => {
-    const result = await bot.sendDocument(to, 'http://www.africau.edu/images/default/sample.pdf', {
-      caption: 'Random pdf',
-      filename: 'myfile.pdf',
-    });
+    const result = await bot.sendDocument(
+      to,
+      'http://www.africau.edu/images/default/sample.pdf',
+      {
+        caption: 'Random pdf',
+        filename: 'myfile.pdf',
+      },
+    );
 
     expectSendMessageResult(result);
   });
 
   test('sends audio', async () => {
-    const result = await bot.sendAudio(to, 'https://samplelib.com/lib/preview/mp3/sample-3s.mp3');
+    const result = await bot.sendAudio(
+      to,
+      'https://samplelib.com/lib/preview/mp3/sample-3s.mp3',
+    );
 
     expectSendMessageResult(result);
   });
 
   test('sends video', async () => {
-    const result = await bot.sendVideo(to, 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4', {
-      caption: 'Random mp4',
-    });
+    const result = await bot.sendVideo(
+      to,
+      'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
+      {
+        caption: 'Random mp4',
+      },
+    );
 
     expectSendMessageResult(result);
   });
@@ -107,7 +125,7 @@ describe('send functions', () => {
   });
 
   test('sends location', async () => {
-    const result = await bot.sendLocation(to, 40.7128, -74.0060, {
+    const result = await bot.sendLocation(to, 40.7128, -74.006, {
       name: 'New York',
     });
 
@@ -121,20 +139,26 @@ describe('send functions', () => {
   });
 
   test('sends contacts', async () => {
-    const result = await bot.sendContacts(to, [{
-      name: {
-        formatted_name: 'John Doe',
-        first_name: 'John',
+    const result = await bot.sendContacts(to, [
+      {
+        name: {
+          formatted_name: 'John Doe',
+          first_name: 'John',
+        },
+        phones: [
+          {
+            type: 'HOME',
+            phone: '0712345678',
+          },
+        ],
+        emails: [
+          {
+            type: 'HOME',
+            email: 'random@random.com',
+          },
+        ],
       },
-      phones: [{
-        type: 'HOME',
-        phone: '0712345678',
-      }],
-      emails: [{
-        type: 'HOME',
-        email: 'random@random.com',
-      }],
-    }]);
+    ]);
 
     expectSendMessageResult(result);
   });
@@ -199,6 +223,105 @@ describe('send functions', () => {
 
     expectSendMessageResult(result);
   });
+
+  test('uploads media', async () => {
+    // This test would require an actual file to upload
+    // For a real test, you'd need to:
+    // 1. Create a temporary test file or use an existing one
+    // 2. Upload it using uploadMedia
+    // 3. Verify the response contains a media ID
+    // 4. Optionally: use that ID to send a media message
+
+    const testFilePath = './test-assets/sample-image.jpg';
+    const result = await bot.uploadMedia(testFilePath);
+
+    expect(result && typeof result === 'object').toBe(true);
+    expect(result).toHaveProperty('id');
+    expect(typeof result.id).toBe('string');
+
+    // Optional: Test that uploaded media can be used to send message
+    const sendResult = await bot.sendImage(to, result.id, {
+      caption: 'Uploaded media test',
+    });
+    expectSendMessageResult(sendResult);
+
+    // Placeholder test
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
+
+  test('uploads media with auto-detected MIME type', async () => {
+    // This test verifies that MIME type can be omitted
+
+    const testFilePath = './test-assets/sample-document.pdf';
+    const result = await bot.uploadMedia(testFilePath); // No MIME type provided
+
+    expect(result && typeof result === 'object').toBe(true);
+    expect(result).toHaveProperty('id');
+    expect(typeof result.id).toBe('string');
+
+    // Placeholder test
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
+
+  test('uploads media with explicit MIME type', async () => {
+    // This test verifies explicit MIME type works
+
+    const testFilePath = './test-assets/sample-video.mp4';
+    const result = await bot.uploadMedia(testFilePath, 'video/mp4');
+
+    expect(result && typeof result === 'object').toBe(true);
+    expect(result).toHaveProperty('id');
+    expect(typeof result.id).toBe('string');
+
+    // Placeholder test
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
+  test('uploads media with URL object path', async () => {
+    // Test with URL object - needs absolute path
+    const absolutePath = path.resolve(
+      __dirname,
+      '../test-assets/sample-image.jpg',
+    );
+    const testFilePath = new URL(`file:///${absolutePath.replace(/\\/g, '/')}`);
+    const result = await bot.uploadMedia(testFilePath, 'image/jpeg');
+
+    expect(result && typeof result === 'object').toBe(true);
+    expect(result).toHaveProperty('id');
+    expect(typeof result.id).toBe('string');
+
+    // Placeholder test - verifies function accepts URL objects
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
+  test('uploads media with path.resolve()', async () => {
+    // Test with resolved path object
+    // Example implementation (commented out since it requires actual files):
+    const testFilePath = path.resolve(
+      __dirname,
+      '../test-assets/sample-document.pdf',
+    );
+    const result = await bot.uploadMedia(testFilePath); // Auto-detect MIME type
+
+    expect(result && typeof result === 'object').toBe(true);
+    expect(result).toHaveProperty('id');
+    expect(typeof result.id).toBe('string');
+
+    // Placeholder test
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
+
+  test('throws error when MIME type cannot be detected', async () => {
+    // Test error handling for files without extensions
+    // Example implementation (commented out since it requires actual files):
+
+    const testFilePath = './test-assets/file-without-extension';
+
+    await expect(bot.uploadMedia(testFilePath)).rejects.toThrow(
+      'Could not determine MIME type',
+    );
+
+    // Placeholder test
+    expect(typeof bot.uploadMedia).toBe('function');
+  });
 });
 
 test('mark send CTA url', async () => {
@@ -233,24 +356,23 @@ describe('server functions', () => {
     });
   });
 
-  afterAll((): Promise<void> => new Promise((resolve) => {
-    if (!server) {
-      resolve();
-      return;
-    }
+  afterAll(
+    (): Promise<void> => new Promise((resolve) => {
+      if (!server) {
+        resolve();
+        return;
+      }
 
-    server.close(() => {
-      // eslint-disable-next-line
-      console.log('✔️ Server closed');
-      resolve();
-    });
-  }));
+      server.close(() => {
+        // eslint-disable-next-line
+          console.log("✔️ Server closed");
+        resolve();
+      });
+    }),
+  );
 
   test('invalid webhook token', async () => {
-    const sendRequest = (path: string) => request(app)
-      .get(path)
-      .send()
-      .expect(200);
+    const sendRequest = (route: string) => request(app).get(route).send().expect(200);
 
     const paths = [
       webhookPath,
@@ -269,7 +391,11 @@ describe('server functions', () => {
   test('verify webhook token', async () => {
     const challenge = 'random';
     const { text } = await request(app)
-      .get(`${webhookPath}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(webhookVerifyToken)}&hub.challenge=${challenge}`)
+      .get(
+        `${webhookPath}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(
+          webhookVerifyToken,
+        )}&hub.challenge=${challenge}`,
+      )
       .send()
       .expect(200);
 
@@ -277,7 +403,9 @@ describe('server functions', () => {
   });
 
   test('send invalid body', async () => {
-    const sendRequest = (data: FreeFormObject<keyof FreeFormObjectMap>) => request(app)
+    const sendRequest = (
+      data: FreeFormObject<keyof FreeFormObjectMap>,
+    ) => request(app)
       .post(webhookPath)
       .send(data)
       .expect(200);
@@ -609,21 +737,27 @@ describe('server functions', () => {
           .post(webhookPath)
           .send({
             object: 'abcd',
-            entry: [{
-              changes: [{
-                value: {
-                  messages: [payload],
-                  contacts: [{
-                    profile: {
-                      name: getRandomInt(0, 1) ? 'John Doe' : undefined,
+            entry: [
+              {
+                changes: [
+                  {
+                    value: {
+                      messages: [payload],
+                      contacts: [
+                        {
+                          profile: {
+                            name: getRandomInt(0, 1) ? 'John Doe' : undefined,
+                          },
+                        },
+                      ],
+                      metadata: {
+                        phone_number_id: fromPhoneNumberId,
+                      },
                     },
-                  }],
-                  metadata: {
-                    phone_number_id: fromPhoneNumberId,
                   },
-                },
-              }],
-            }],
+                ],
+              },
+            ],
           })
           .expect(200);
       });
