@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import mime from 'mime-types';
 import FormData from 'form-data';
+import { fileURLToPath } from 'url';
 import { ICreateBot } from './createBot.types';
 import {
   ContactMessage,
@@ -237,14 +238,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         filePath = filePathInput;
         fileName = path.basename(filePath);
       } else if (filePathInput instanceof URL) {
-        // For URL objects with file:// protocol, extract the pathname
-        filePath = filePathInput.protocol === 'file:'
-          ? filePathInput.pathname
-          : filePathInput.toString();
-        // On Windows, file URLs have an extra leading slash (e.g., /C:/...)
-        if (process.platform === 'win32' && filePath.startsWith('/')) {
-          filePath = filePath.slice(1);
-        }
+        filePath = fileURLToPath(filePathInput);
         fileName = path.basename(filePath);
       } else if (Buffer.isBuffer(filePathInput)) {
         // Handle Buffer input directly
