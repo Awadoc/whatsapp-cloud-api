@@ -1,13 +1,25 @@
 import isURL from 'validator/lib/isURL';
 import PubSub from 'pubsub-js';
+import * as fs from 'fs';
+import * as path from 'path';
+import mime from 'mime-types';
+import FormData from 'form-data';
 import { ICreateBot } from './createBot.types';
 import {
-  ContactMessage, InteractiveMessage, LocationMessage,
-  MediaBase, MediaMessage, TemplateMessage,
+  ContactMessage,
+  InteractiveMessage,
+  LocationMessage,
+  MediaBase,
+  MediaMessage,
+  TemplateMessage,
   TextMessage,
   MarkAsRead,
 } from './messages.types';
-import { getAxiosClient, sendRequestHelper } from './sendRequestHelper';
+import {
+  getMediaAxiosClient,
+  getMessagesAxiosClient,
+  sendRequestHelper,
+} from './sendRequestHelper';
 import { getExpressRoute } from './startExpressServer';
 
 interface PaylodBase {
@@ -21,8 +33,18 @@ const payloadBase: PaylodBase = {
 };
 
 export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
-  const axiosClient = getAxiosClient(fromPhoneNumberId, accessToken, opts?.version);
-  const sendRequest = sendRequestHelper(axiosClient);
+  const messagesClient = getMessagesAxiosClient(
+    fromPhoneNumberId,
+    accessToken,
+    opts?.version,
+  );
+  const mediaClient = getMediaAxiosClient(
+    fromPhoneNumberId,
+    accessToken,
+    opts?.version,
+  );
+  const sendRequest = sendRequestHelper(messagesClient, 'messages');
+  const uploadMediaRequest = sendRequestHelper(mediaClient, 'media');
 
   const getMediaPayload = (urlOrObjectId: string, options?: MediaBase) => ({
     ...(isURL(urlOrObjectId) ? { link: urlOrObjectId } : { id: urlOrObjectId }),
@@ -33,7 +55,10 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
   return {
     getExpressRoute: (options) => getExpressRoute(options),
     on: (event, cb) => {
-      const token = PubSub.subscribe(`bot-${fromPhoneNumberId}-${event}`, (_, data) => cb(data));
+      const token = PubSub.subscribe(
+        `bot-${fromPhoneNumberId}-${event}`,
+        (_, data) => cb(data),
+      );
       return token;
     },
     unsubscribe: (token) => PubSub.unsubscribe(token),
@@ -132,8 +157,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
           ? {
             footer: { text: options?.footerText },
           }
-          : {}
-        ),
+          : {}),
         header: options?.header,
         type: 'button',
         action: {
@@ -160,8 +184,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
           ? {
             footer: { text: options?.footerText },
           }
-          : {}
-        ),
+          : {}),
         header: options?.header,
         type: 'list',
         action: {
@@ -186,8 +209,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
           ? {
             footer: { text: options?.footerText },
           }
-          : {}
-        ),
+          : {}),
         header: options?.header,
         type: 'cta_url',
         action: {
@@ -205,5 +227,41 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       message_id,
       typing_indicator,
     }),
+    uploadMedia: async (filePathInput, mimeType) => {
+      // Handle both string and path object
+      let filePath: string;
+      if (typeof filePathInput === 'string') {
+        filePath = filePathInput;
+      } else if (filePathInput instanceof URL) {
+        // For URL objects with file:// protocol, extract the pathname
+        filePath = filePathInput.protocol === 'file:'
+          ? filePathInput.pathname
+          : filePathInput.toString();
+        // On Windows, file URLs have an extra leading slash (e.g., /C:/...)
+        if (process.platform === 'win32' && filePath.startsWith('/')) {
+          filePath = filePath.slice(1);
+        }
+      } else {
+        filePath = filePathInput.toString();
+      }
+
+      // Auto-detect MIME type if not provided
+      const detectedMimeType = mimeType || mime.lookup(filePath);
+
+      if (!detectedMimeType) {
+        throw new Error(
+          `Could not determine MIME type for file: ${filePath}. Please provide mimeType explicitly.`,
+        );
+      }
+
+      const formData = new FormData();
+      formData.append('messaging_product', 'whatsapp');
+      formData.append('file', fs.createReadStream(filePath), {
+        contentType: detectedMimeType,
+        filename: path.basename(filePath),
+      });
+
+      return uploadMediaRequest(formData);
+    },
   };
 };

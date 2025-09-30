@@ -6,11 +6,14 @@ import {
   MarkAsRead,
   Message as WhatsappMessageObject,
 } from './messages.types';
-import { SendMessageResult } from './sendRequestHelper';
+import {
+  UploadMediaResult,
+  SendMessageResult,
+} from './sendRequestHelper.types';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
-export interface GenericMessage<
+export interface GenericMessage <
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
   from: string;
@@ -169,6 +172,11 @@ export interface Bot {
     status: MarkAsRead['status'],
     typing_indicator?: MarkAsRead['typing_indicator']
   ) => Promise<SendMessageResult>;
+
+  uploadMedia: (
+    filePath: string | URL | Buffer,
+    mimeType?: string | null
+  ) => Promise<UploadMediaResult>;
 }
 
 export type ICreateBot = (
