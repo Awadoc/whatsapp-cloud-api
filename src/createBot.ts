@@ -21,7 +21,6 @@ import {
   getMessagesAxiosClient,
   sendRequestHelper,
 } from './sendRequestHelper';
-import { getExpressRoute } from './startExpressServer';
 
 interface PaylodBase {
   messaging_product: 'whatsapp';
@@ -54,7 +53,6 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
   });
 
   return {
-    getExpressRoute: (options) => getExpressRoute(options),
     on: (event, cb) => {
       const token = PubSub.subscribe(
         `bot-${fromPhoneNumberId}-${event}`,

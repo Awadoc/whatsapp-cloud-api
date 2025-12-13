@@ -2,7 +2,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "esModuleInterop": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "removeComments": true,
     "sourceMap": true,
     "declaration": true
