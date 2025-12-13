@@ -1,5 +1,5 @@
 {
-  "name": "@awadoc/whatsapp-cloud-api",
+  "name": "@Awadoc/whatsapp-cloud-api",
   "version": "3.0.0",
   "description": "Node.js library for creating bots and sending/receiving messages using the Whatsapp Cloud API",
   "main": "dist/index.js",
@@ -85,7 +85,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/awadoc/whatsapp-cloud-api.git"
+    "url": "git+https://github.com/Awadoc/whatsapp-cloud-api.git"
   },
   "keywords": [
     "whatsapp",
@@ -108,9 +108,9 @@
   "author": "Chibueze <chibueze@awadoc.com>",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/awadoc/whatsapp-cloud-api/issues"
+    "url": "https://github.com/Awadoc/whatsapp-cloud-api/issues"
   },
-  "homepage": "https://github.com/awadoc/whatsapp-cloud-api#readme",
+  "homepage": "https://github.com/Awadoc/whatsapp-cloud-api#readme",
   "engines": {
     "node": ">=12"
   },
