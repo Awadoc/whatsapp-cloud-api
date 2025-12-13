@@ -1,9 +1,9 @@
 # whatsapp-cloud-api
 
-A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/) with full TypeScript support. Built to send and receive messages, handle webhooks via Express, and scale cleanly in your apps.
+A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/) with full TypeScript support. Built to send and receive messages, handle webhooks via Express or Next.js, and scale cleanly in your apps.
 
 > **Forked from:** [tawn33y/whatsapp-cloud-api](https://github.com/tawn33y/whatsapp-cloud-api) *(Archived)*\
-> Maintained and updated with extended support and modular Express routing.
+> Maintained with extended support, modular routing, and Next.js support.
 
 ---
 
@@ -13,51 +13,77 @@ A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.co
 npm install @awadoc/whatsapp-cloud-api
 ```
 
-or
-
+**For Next.js support (optional):**
 ```bash
-yarn add @awadoc/whatsapp-cloud-api
+npm install next
 ```
 
 ---
 
-## 📦 Usage (with custom Express server)
+## 📦 Usage with Express
 
 ```ts
 import express from 'express';
-import { createBot } from 'whatsapp-cloud-api';
+import { createBot } from '@awadoc/whatsapp-cloud-api';
+import { getExpressRoute } from '@awadoc/whatsapp-cloud-api/express';
 
-(async () => {
-  const from = 'YOUR_WHATSAPP_PHONE_NUMBER_ID';
-  const token = 'YOUR_ACCESS_TOKEN';
-  const to = 'RECIPIENT_PHONE_NUMBER';
-  const webhookVerifyToken = 'YOUR_WEBHOOK_VERIFICATION_TOKEN';
-  const webhookPath = '/webhook/whatsapp';
+const phoneId = process.env.PHONE_ID!;
+const token = process.env.ACCESS_TOKEN!;
+const webhookVerifyToken = process.env.WEBHOOK_VERIFY_TOKEN!;
 
-  const app = express();
+const app = express();
+const bot = createBot(phoneId, token);
 
-  const bot = createBot(from, token);
+// Register WhatsApp webhook route
+app.use('/webhook', getExpressRoute(phoneId, { webhookVerifyToken }));
 
-  // Optional: Send a message on startup
-  await bot.sendText(to, 'Hello world!');
+// Handle incoming messages
+bot.on('message', async (msg) => {
+  console.log(msg);
+  if (msg.type === 'text') {
+    await bot.sendText(msg.from, 'Got your text!');
+  }
+});
 
-  // Register WhatsApp webhook route
-  app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+```
 
-  // Handle incoming messages
-  bot.on('message', async (msg) => {
-    console.log(msg);
-    if (msg.type === 'text') {
-      await bot.sendText(msg.from, 'Got your text!');
-    } else if (msg.type === 'image') {
-      await bot.sendText(msg.from, 'Nice image!');
-    }
-  });
+---
 
-  app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
-  });
-})();
+## 📦 Usage with Next.js
+
+### App Router (Next.js 13+)
+
+```ts
+// app/api/whatsapp/webhook/route.ts
+import { createBot } from '@awadoc/whatsapp-cloud-api';
+import { getNextAppRouteHandlers } from '@awadoc/whatsapp-cloud-api/next';
+
+const phoneId = process.env.PHONE_ID!;
+const bot = createBot(phoneId, process.env.ACCESS_TOKEN!);
+
+export const { GET, POST } = getNextAppRouteHandlers(phoneId, {
+  webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN,
+});
+
+bot.on('message', (msg) => console.log(msg));
+```
+
+### Pages Router
+
+```ts
+// pages/api/whatsapp/webhook.ts
+import { createBot } from '@awadoc/whatsapp-cloud-api';
+import { getNextPagesApiHandler } from '@awadoc/whatsapp-cloud-api/next';
+
+const phoneId = process.env.PHONE_ID!;
+const bot = createBot(phoneId, process.env.ACCESS_TOKEN!);
+
+export default getNextPagesApiHandler(phoneId, {
+  webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN,
+});
+
+bot.on('message', (msg) => console.log(msg));
 ```
 
 ---
@@ -65,9 +91,9 @@ import { createBot } from 'whatsapp-cloud-api';
 ## 💡 Features
 
 - ✅ Send & receive all message types: text, image, video, audio, location, templates, buttons.
-- ✅ Drop-in webhook support via Express.
+- ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router).
 - ✅ Full TypeScript typing & dev experience.
-- ✅ Custom routing support for integration with existing Express apps.
+- ✅ Custom routing support for integration with existing apps.
 
 ---
 

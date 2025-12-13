@@ -50,7 +50,9 @@ This 4-part tutorial should help you get started on using the library quickly.
 - Update `src/index.js` to look as follows:
 
   ```js
-  const { createBot } = require('whatsapp-cloud-api');
+  const { createBot } = require('@awadoc/whatsapp-cloud-api');
+  const { getExpressRoute } = require('@awadoc/whatsapp-cloud-api/express');
+  const express = require('express');
 
   (async () => {
     try {
@@ -64,10 +66,10 @@ This 4-part tutorial should help you get started on using the library quickly.
 
       const result = await bot.sendText(to, 'Hello world');
 
-      // Start express server to listen for incoming messages
-      await bot.startExpressServer({
-        webhookVerifyToken,
-      });
+      // Start express server with webhook handler
+      const app = express();
+      app.use('/webhook/whatsapp', getExpressRoute(from, { webhookVerifyToken }));
+      app.listen(3000, () => console.log('Server running on port 3000'));
 
       // Listen to ALL incoming messages
       bot.on('message', async (msg) => {

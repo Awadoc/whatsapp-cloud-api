@@ -3,6 +3,7 @@ import { Server } from 'http';
 import express from 'express';
 import path from 'path';
 import { createBot } from '.';
+import { getExpressRoute } from './express';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvents } from './utils/pubSub';
 
@@ -46,7 +47,7 @@ if (
 describe('send functions', () => {
   const app = express();
   const bot = createBot(fromPhoneNumberId, accessToken, { version });
-  app.use(webhookPath, bot.getExpressRoute);
+  app.use(webhookPath, getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }));
   // let messageID = '';
 
   test('sends text', async () => {
@@ -349,7 +350,7 @@ describe('server functions', () => {
   let server: Server | undefined;
 
   beforeAll(async () => {
-    app.use(webhookPath, bot.getExpressRoute({ webhookVerifyToken }));
+    app.use(webhookPath, getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }));
     server = app.listen(3020, () => {
       // eslint-disable-next-line
       console.log(`🚀 Server running on port ${3020}...`);

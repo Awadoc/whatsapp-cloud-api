@@ -17,8 +17,15 @@
   - [sendList(to, buttonName, bodyText, sections, [options])](#send_list)
   - [sendCTAUrl(to, bodyText, display_text, url, [options])](#send_cta_url)
   - [markAsRead(message_id, status, typing_indicator)](#mark_as_read)
-  - [getExpressRoute([options])](#get_express_route)
   - [on(event, cb: (message) => void)](#on_event)
+
+### Separate Modules (v3.0.0+)
+
+- [@awadoc/whatsapp-cloud-api/express](#express_module)
+  - [getExpressRoute(fromPhoneNumberId, [options])](#get_express_route)
+- [@awadoc/whatsapp-cloud-api/next](#next_module)
+  - [getNextAppRouteHandlers(fromPhoneNumberId, [options])](#get_next_app_route_handlers)
+  - [getNextPagesApiHandler(fromPhoneNumberId, [options])](#get_next_pages_api_handler)
 
 ## Details
 
@@ -222,15 +229,54 @@ Same as `sendText` above.
 | status | `String` | | The status to set for the message (e.g., "read"). |
 | typing_indicator | `Boolean` | | Indicates whether to show a typing indicator. |
 
+<a name="express_module"></a>
+
+## Express Module
+
+`import { getExpressRoute } from '@awadoc/whatsapp-cloud-api/express'`
+
 <a name="get_express_route"></a>
 
-### getExpressRoute([options])
+### getExpressRoute(fromPhoneNumberId, [options])
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
+| fromPhoneNumberId | `string` | | Your WhatsApp Business phone number ID. |
 | [options] | `Object` | | |
-| [options.useMiddleware] | `function` | | A function that accepts middleware for your server. See [README](./README.md#2-handling-incoming-messages) for more info. |
-| [options.webhookVerifyToken] | `string` | | Verification token to use in Facebook Developer app settings. See [README](./README.md#1-verifying-your-callback-url) for more info. |
+| [options.useMiddleware] | `function` | | A function that accepts middleware for your server. |
+| [options.webhookVerifyToken] | `string` | | Verification token for Facebook Developer app settings. |
+
+<a name="next_module"></a>
+
+## Next.js Module
+
+`import { getNextAppRouteHandlers, getNextPagesApiHandler } from '@awadoc/whatsapp-cloud-api/next'`
+
+<a name="get_next_app_route_handlers"></a>
+
+### getNextAppRouteHandlers(fromPhoneNumberId, [options])
+
+For Next.js 13+ App Router (`app/api/.../route.ts`).
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| fromPhoneNumberId | `string` | | Your WhatsApp Business phone number ID. |
+| [options] | `Object` | | |
+| [options.webhookVerifyToken] | `string` | | Verification token for Facebook Developer app settings. |
+
+Returns an object with `GET` and `POST` handlers.
+
+<a name="get_next_pages_api_handler"></a>
+
+### getNextPagesApiHandler(fromPhoneNumberId, [options])
+
+For Next.js Pages Router (`pages/api/.../ts`).
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| fromPhoneNumberId | `string` | | Your WhatsApp Business phone number ID. |
+| [options] | `Object` | | |
+| [options.webhookVerifyToken] | `string` | | Verification token for Facebook Developer app settings. |
 
 <a name="on_event"></a>
 

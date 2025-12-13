@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 3.0.0
+
+### Added
+
+- **Next.js Support**: New module `@awadoc/whatsapp-cloud-api/next`
+  - `getNextAppRouteHandlers(phoneId, options)` - For Next.js 13+ App Router
+  - `getNextPagesApiHandler(phoneId, options)` - For Next.js Pages Router
+- **Separate Express module**: `@awadoc/whatsapp-cloud-api/express`
+  - `getExpressRoute(phoneId, options)` - Express webhook handler
+
+### Breaking Changes
+
+- `getExpressRoute` removed from `Bot` interface - import from `/express` instead:
+  ```typescript
+  // Before (v2.x)
+  app.use('/webhook', bot.getExpressRoute({ webhookVerifyToken }));
+  
+  // After (v3.0.0)
+  import { getExpressRoute } from '@awadoc/whatsapp-cloud-api/express';
+  app.use('/webhook', getExpressRoute(phoneId, { webhookVerifyToken }));
+  ```
+- Next.js is now an optional peer dependency
+
+---
+
 ## 2.1.0
 
 ### Added

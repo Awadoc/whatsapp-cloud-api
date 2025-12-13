@@ -1,4 +1,3 @@
-import express, { Router } from 'express';
 import {
   Contact,
   InteractiveHeader,
@@ -41,11 +40,6 @@ export type BaseOptionType = {
 };
 
 export interface Bot {
-  getExpressRoute: (options?: {
-    useMiddleware?: (app: express.Router) => void;
-    webhookVerifyToken?: string;
-  }) => Router;
-
   on(event: 'message', cb: MessageEventCallback): string;
   on<K extends PubSubEvent>(event: K, cb: SpecificEventCallback<K>): string;
   unsubscribe: (token: string) => string | boolean;
