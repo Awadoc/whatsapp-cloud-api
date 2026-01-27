@@ -1,5 +1,6 @@
 import {
   Contact,
+  WebhookContact,
   InteractiveHeader,
   TemplateComponent,
   MarkAsRead,
@@ -12,15 +13,17 @@ import {
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
 
-export interface GenericMessage <
+export interface GenericMessage<
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
   from: string;
+  from_user_id?: string;
   name: string | undefined;
   id: string;
   timestamp: string;
   type: K;
   data: FreeFormObject<K>;
+  contact?: WebhookContact;
 }
 
 export type AllPossibleMessages = {
@@ -31,7 +34,7 @@ export type Message = AllPossibleMessages;
 
 export type MessageEventCallback = (message: Message) => void;
 export type SpecificEventCallback<K extends PubSubEvent> = (
-  message: GenericMessage<K>
+  message: GenericMessage<K>,
 ) => void;
 
 // 👇 Base option for all send methods
@@ -49,7 +52,7 @@ export interface Bot {
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendMessage: (
@@ -57,7 +60,7 @@ export interface Bot {
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendImage: (
@@ -65,7 +68,7 @@ export interface Bot {
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendDocument: (
@@ -74,13 +77,13 @@ export interface Bot {
     options?: BaseOptionType & {
       caption?: string;
       filename?: string;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendAudio: (
     to: string,
     urlOrObjectId: string,
-    options?: BaseOptionType
+    options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendVideo: (
@@ -88,13 +91,13 @@ export interface Bot {
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendSticker: (
     to: string,
     urlOrObjectId: string,
-    options?: BaseOptionType
+    options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendLocation: (
@@ -104,7 +107,7 @@ export interface Bot {
     options?: BaseOptionType & {
       name?: string;
       address?: string;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendTemplate: (
@@ -112,13 +115,13 @@ export interface Bot {
     name: string,
     languageCode: string,
     components?: TemplateComponent[],
-    options?: BaseOptionType
+    options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendContacts: (
     to: string,
     contacts: Contact[],
-    options?: BaseOptionType
+    options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendReplyButtons: (
@@ -130,7 +133,7 @@ export interface Bot {
     options?: BaseOptionType & {
       footerText?: string;
       header?: InteractiveHeader;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendList: (
@@ -147,7 +150,7 @@ export interface Bot {
     options?: BaseOptionType & {
       footerText?: string;
       header?: InteractiveHeader;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   sendCTAUrl: (
@@ -158,19 +161,19 @@ export interface Bot {
     options?: BaseOptionType & {
       footerText?: string;
       header?: InteractiveHeader;
-    }
+    },
   ) => Promise<SendMessageResult>;
 
   markAsRead: (
     message_id: string,
     status: MarkAsRead['status'],
-    typing_indicator?: MarkAsRead['typing_indicator']
+    typing_indicator?: MarkAsRead['typing_indicator'],
   ) => Promise<SendMessageResult>;
 
   uploadMedia: (
     filePath: string | URL | Buffer,
     mimeType?: string | null,
-    filename?: string
+    filename?: string,
   ) => Promise<UploadMediaResult>;
 }
 
@@ -179,5 +182,5 @@ export type ICreateBot = (
   accessToken: string,
   options?: {
     version?: string;
-  }
+  },
 ) => Bot;

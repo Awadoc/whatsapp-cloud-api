@@ -4,6 +4,7 @@ import {
   OfficialSendMessageResult,
   OfficialUploadMediaResult,
 } from './sendRequestHelper.types';
+import { DebugLogger } from './utils/logger';
 
 // https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages
 
@@ -12,14 +13,34 @@ const getBaseAxiosClient = (
   fromPhoneNumberId: string,
   accessToken: string,
   version: string = 'v20.0',
-): AxiosInstance => axios.create({
-  baseURL: `https://graph.facebook.com/${version}/${fromPhoneNumberId}`,
-  headers: {
-    Authorization: `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
-});
+): AxiosInstance => {
+  const client = axios.create({
+    baseURL: `https://graph.facebook.com/${version}/${fromPhoneNumberId}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+  });
+
+  client.interceptors.request.use((config) => {
+    DebugLogger.logOutgoingRequest(config);
+    return config;
+  });
+
+  client.interceptors.response.use(
+    (response) => {
+      DebugLogger.logResponse(response);
+      return response;
+    },
+    (error) => {
+      DebugLogger.logError(error);
+      return Promise.reject(error);
+    },
+  );
+
+  return client;
+};
 
 // Client for messages endpoint
 export const getMessagesAxiosClient = (

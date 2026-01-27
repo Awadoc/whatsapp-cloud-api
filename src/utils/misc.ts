@@ -109,12 +109,21 @@ export interface FreeFormObjectMap {
     body: string;
     new_wa_id?: string;
     type: string;
+    user_id?: string; // BSUID update
+  };
+  status: {
+    id: string;
+    status: string;
+    timestamp: string;
+    recipient_id: string;
+    recipient_user_id?: string;
+    errors?: any[];
   };
 }
 
 // Create a conditional type for better constraint handling
-export type FreeFormObject<K extends keyof FreeFormObjectMap>
-  = FreeFormObjectMap[K] & { context?: any };
+export type FreeFormObject<K extends keyof FreeFormObjectMap> =
+  FreeFormObjectMap[K] & { context?: any };
 
 // Union type for all specific message data types (excluding 'message')
 export type SpecificMessageData = FreeFormObjectMap[keyof Omit<

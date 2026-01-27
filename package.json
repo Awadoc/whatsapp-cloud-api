@@ -33,10 +33,11 @@
   },
   "scripts": {
     "start": "nodemon",
+    "start:demo": "ts-node server_demo.ts",
     "build": "rm -rf dist && tsc",
     "lint": "eslint --ext .ts ./",
     "ts-check": "tsc --noEmit -p  .",
-    "test": "npm run build && jest --testPathPattern=dist",
+    "test": "jest",
     "pre-commit-message": "echo 'Please wait, running pre-commit checks...' && exit 0",
     "pre-commit": "npm-run-all lint ts-check test",
     "prepare": "[ -d './.husky' ] && husky install"

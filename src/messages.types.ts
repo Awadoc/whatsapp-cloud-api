@@ -6,9 +6,11 @@ export interface Message {
   messaging_product: 'whatsapp';
   recipient_type: 'individual';
   to: string;
+  from?: string; // Optional (incoming)
+  from_user_id?: string; // BSUID (incoming)
   context?: {
-    message_id:string
-  }
+    message_id: string;
+  };
 }
 
 interface ContactName {
@@ -17,6 +19,16 @@ interface ContactName {
   middle_name?: string;
   suffix?: string;
   prefix?: string;
+}
+
+export interface WebhookContact {
+  profile: {
+    name: string;
+    username?: string; // BSUID feature?
+    country_code?: string; // BSUID feature?
+  };
+  wa_id: string;
+  user_id?: string;
 }
 
 export interface Contact {
@@ -30,13 +42,19 @@ export interface Contact {
     type?: 'HOME' | 'WORK';
   }[];
   birthday?: string; // YYYY-MM-DD
+  user_id?: string;
+  username?: string;
+  country_code?: string;
   emails?: {
     email?: string;
     type: 'HOME' | 'WORK';
   }[];
   name: {
     formatted_name: string;
-  } & RequireAtLeastOne<ContactName, 'first_name' | 'last_name' | 'middle_name' | 'prefix' | 'suffix'>;
+  } & RequireAtLeastOne<
+  ContactName,
+  'first_name' | 'last_name' | 'middle_name' | 'prefix' | 'suffix'
+  >;
   org?: {
     company?: string;
     department?: string;
@@ -73,8 +91,11 @@ interface InteractiveHeaderDocument {
   document: Media;
 }
 
-export type InteractiveHeader = InteractiveHeaderText | InteractiveHeaderVideo |
-InteractiveHeaderImage | InteractiveHeaderDocument;
+export type InteractiveHeader =
+  | InteractiveHeaderText
+  | InteractiveHeaderVideo
+  | InteractiveHeaderImage
+  | InteractiveHeaderDocument;
 
 export interface InteractiveBase {
   body: {
@@ -105,8 +126,8 @@ export interface InteractiveURL {
     name: 'cta_url';
     parameters: {
       display_text: string;
-      url:`http://${string}` | `https://${string}`;
-    }
+      url: `http://${string}` | `https://${string}`;
+    };
   };
 }
 
@@ -116,25 +137,31 @@ export type BaseFlowParameters = {
   flow_cta: string;
   mode?: 'draft' | 'published';
 } & {
-  flow_action?: 'navigate'
-  flow_action_payload?: string | {
-    screen: string
+  flow_action?: 'navigate';
+  flow_action_payload?:
+  | string
+  | {
+    screen: string;
     data: {
       [key: string]: string | number | boolean | null;
-    }
-  }
+    };
+  };
 } & {
-  flow_action?: 'data_exchange'
+  flow_action?: 'data_exchange';
 };
 export interface InteractiveFlow {
   type: 'flow';
   action: {
     name: 'flow';
-    parameters: BaseFlowParameters & ({
-      flow_id: string;
-    } | {
-      flow_name: string;
-    })
+    parameters: BaseFlowParameters &
+    (
+      | {
+        flow_id: string;
+      }
+      | {
+        flow_name: string;
+      }
+    );
   };
 }
 
@@ -153,10 +180,8 @@ export interface InteractiveListMessage {
   };
 }
 
-type Interactive = InteractiveBase & (
-  InteractiveReplyButton |
-  InteractiveListMessage |
-  InteractiveURL);
+type Interactive = InteractiveBase &
+(InteractiveReplyButton | InteractiveListMessage | InteractiveURL);
 
 export interface Location {
   longitude: number;
@@ -219,8 +244,12 @@ interface TemplateComponentTypeHeader {
 interface TemplateComponentTypeBody {
   type: 'body';
   parameters: (
-    ParameterText | ParameterCurrency | ParameterDateTime |
-    ParameterImage | ParameterDocument | ParameterVideo
+    | ParameterText
+    | ParameterCurrency
+    | ParameterDateTime
+    | ParameterImage
+    | ParameterDocument
+    | ParameterVideo
   )[];
 }
 
@@ -248,9 +277,9 @@ interface TemplateComponentTypeButtonFlow {
     action: {
       flow_token: string;
       flow_action_data: {
-        [key: string]: string | number | boolean | object
-      }
-    }
+        [key: string]: string | number | boolean | object;
+      };
+    };
   }[];
 }
 
@@ -259,13 +288,17 @@ interface TemplateComponentTypeButtonBase {
   index: 0 | 1 | 2;
 }
 
-type TemplateComponentTypeButton = TemplateComponentTypeButtonBase & (
-  TemplateComponentTypeButtonQuickReply | TemplateComponentTypeButtonUrl
+type TemplateComponentTypeButton = TemplateComponentTypeButtonBase &
+(
+  | TemplateComponentTypeButtonQuickReply
+  | TemplateComponentTypeButtonUrl
   | TemplateComponentTypeButtonFlow
 );
 
-export type TemplateComponent = TemplateComponentTypeHeader | TemplateComponentTypeBody |
-TemplateComponentTypeButton;
+export type TemplateComponent =
+  | TemplateComponentTypeHeader
+  | TemplateComponentTypeBody
+  | TemplateComponentTypeButton;
 
 export interface Template {
   name: string;
@@ -331,13 +364,65 @@ export interface VideoMessage extends Message {
   video: Media;
 }
 export interface MarkAsRead {
-  messaging_product:'whatsapp';
+  messaging_product: 'whatsapp';
   message_id: string;
-  status:'read'
+  status: 'read';
   typing_indicator?: {
     type: 'text';
-  }
+  };
 }
 
-export type MediaMessage = AudioMessage | DocumentMessage | ImageMessage |
-StickerMessage | VideoMessage;
+export type MediaMessage =
+  | AudioMessage
+  | DocumentMessage
+  | ImageMessage
+  | StickerMessage
+  | VideoMessage;
+
+export interface Status {
+  id: string;
+  status: 'delivered' | 'read' | 'sent' | 'failed';
+  timestamp: string;
+  recipient_id: string;
+  recipient_user_id?: string;
+  conversation?: {
+    id: string;
+    origin?: {
+      type: string;
+    };
+    expiration_timestamp?: string;
+  };
+  pricing?: {
+    billable: boolean;
+    pricing_model: string;
+    category: string;
+  };
+  errors?: {
+    code: number;
+    title: string;
+    message: string;
+    error_data: {
+      details: string;
+    };
+  }[];
+}
+
+export interface WebhookBody {
+  object: string;
+  entry?: {
+    id: string;
+    changes?: {
+      value: {
+        messaging_product: 'whatsapp';
+        metadata: {
+          display_phone_number: string;
+          phone_number_id: string;
+        };
+        contacts?: Contact[];
+        messages?: Message[];
+        statuses?: Status[];
+      };
+      field: string;
+    }[];
+  }[];
+}

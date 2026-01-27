@@ -2,10 +2,10 @@ import request from 'supertest';
 import { Server } from 'http';
 import express from 'express';
 import path from 'path';
-import { createBot } from '.';
-import { getExpressRoute } from './express';
-import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
-import { PubSubEvents } from './utils/pubSub';
+import { createBot } from '../src';
+import { getExpressRoute } from '../src/express';
+import { FreeFormObject, FreeFormObjectMap } from '../src/utils/misc';
+import { PubSubEvents } from '../src/utils/pubSub';
 
 const expectSendMessageResult = (result: any): void => {
   expect(result && typeof result === 'object').toBe(true);
@@ -47,7 +47,10 @@ if (
 describe('send functions', () => {
   const app = express();
   const bot = createBot(fromPhoneNumberId, accessToken, { version });
-  app.use(webhookPath, getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }));
+  app.use(
+    webhookPath,
+    getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }),
+  );
   // let messageID = '';
 
   test('sends text', async () => {
@@ -350,7 +353,10 @@ describe('server functions', () => {
   let server: Server | undefined;
 
   beforeAll(async () => {
-    app.use(webhookPath, getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }));
+    app.use(
+      webhookPath,
+      getExpressRoute(fromPhoneNumberId, { webhookVerifyToken }),
+    );
     server = app.listen(3020, () => {
       // eslint-disable-next-line
       console.log(`🚀 Server running on port ${3020}...`);
@@ -404,12 +410,10 @@ describe('server functions', () => {
   });
 
   test('send invalid body', async () => {
-    const sendRequest = (
-      data: FreeFormObject<keyof FreeFormObjectMap>,
-    ) => request(app)
-      .post(webhookPath)
-      .send(data)
-      .expect(200);
+    const sendRequest = (data: FreeFormObject<keyof FreeFormObjectMap>) => {
+      const req = request(app).post(webhookPath);
+      return req.send(data).expect(200);
+    };
 
     const data = [
       {},
@@ -672,7 +676,7 @@ describe('server functions', () => {
 
         case 'contacts':
           expect(Array.isArray(data)).toBe(true);
-          data.forEach((contact) => {
+          data.forEach((contact: any) => {
             expect(typeof contact === 'object').toBe(true);
             if (contact.name) expect(typeof contact.name === 'object').toBe(true);
             if (contact.phones) expect(Array.isArray(contact.phones)).toBe(true);
@@ -691,7 +695,7 @@ describe('server functions', () => {
           expect(data).toHaveProperty('product_items');
           expect(typeof data.catalog_id).toBe('string');
           expect(Array.isArray(data.product_items)).toBe(true);
-          data.product_items.forEach((item) => {
+          data.product_items.forEach((item: any) => {
             expect(item).toHaveProperty('product_retailer_id');
             expect(item).toHaveProperty('quantity');
             expect(item).toHaveProperty('item_price');

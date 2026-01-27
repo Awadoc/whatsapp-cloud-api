@@ -22,6 +22,8 @@ import PubSub from 'pubsub-js';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvent, PubSubEvents } from './utils/pubSub';
 import { Message } from './createBot.types';
+import { WebhookContact } from './messages.types';
+import { DebugLogger } from './utils/logger';
 
 // ============================================================================
 // Types
@@ -86,6 +88,7 @@ export const getExpressRoute = (
   // POST - Incoming messages
   router.post('/', (req: Request, res: Response): void => {
     const body = req.body as Record<string, unknown>;
+    DebugLogger.logIncomingWebhook(body);
 
     // Validate body structure
     const typedBody = body as {
@@ -94,9 +97,14 @@ export const getExpressRoute = (
         changes?: Array<{
           value?: {
             metadata?: { phone_number_id?: string };
-            contacts?: Array<{ profile?: { name?: string } }>;
+            contacts?: Array<{
+              profile?: { name?: string };
+              wa_id?: string;
+              user_id?: string;
+            }>;
             messages?: Array<{
               from: string;
+              from_user_id?: string;
               id: string;
               timestamp: string;
               type: string;
@@ -212,18 +220,36 @@ export const getExpressRoute = (
     }
 
     const isSystemMessage = type === 'system';
-    const name = isSystemMessage
-      ? undefined
-      : typedBody.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
+    const contactName = typedBody.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
+    const contacts = typedBody.entry[0].changes[0].value?.contacts;
+
+    // Attempt to find the user_id (BSUID)
+    // 1. Check message.from_user_id (new field)
+    // 2. Check contacts for matching wa_id or user_id
+    // Note: messageData is already extracted above as `const { from ... } = messageData`
+    // We need to access the full messageData object again or rely on `rest` + extracted fields.
+
+    let bsuid = messageData.from_user_id;
+
+    if (!bsuid && contacts) {
+      const contact = contacts.find(
+        (c) => c.wa_id === from || (c.user_id && from === ''),
+      );
+      if (contact) {
+        bsuid = contact.user_id;
+      }
+    }
 
     if (event && data) {
       const payload: Message = {
         from,
-        name,
+        from_user_id: bsuid,
+        name: isSystemMessage ? undefined : contactName,
         id,
         timestamp,
         type: event,
         data: context ? { ...data, context } : data,
+        contact: contacts?.[0] as unknown as WebhookContact, // Populate contact with cast
       };
 
       [
