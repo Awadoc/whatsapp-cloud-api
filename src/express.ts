@@ -188,11 +188,31 @@ export const getExpressRoute = (
       case 'interactive':
         if (rest.interactive) {
           event = rest.interactive.type as PubSubEvent;
-          data = {
-            ...(rest.interactive.list_reply
-              || rest.interactive.button_reply
-              || rest.interactive.nfm_reply),
-          } as FreeFormObject<PubSubEvent>;
+          if (rest.interactive.nfm_reply) {
+            // Parse flow response JSON for nfm_reply
+            const nfmReply = rest.interactive.nfm_reply as {
+              response_json?: string;
+              body?: string;
+              name?: string;
+            };
+            let parsedResponse: Record<string, unknown> | undefined;
+            if (nfmReply.response_json) {
+              try {
+                parsedResponse = JSON.parse(nfmReply.response_json);
+              } catch {
+                // If parsing fails, leave response undefined
+              }
+            }
+            data = {
+              ...nfmReply,
+              response: parsedResponse,
+            } as FreeFormObject<'nfm_reply'>;
+          } else {
+            data = {
+              ...(rest.interactive.list_reply
+                || rest.interactive.button_reply),
+            } as FreeFormObject<PubSubEvent>;
+          }
         }
         break;
 
@@ -241,7 +261,7 @@ export const getExpressRoute = (
     }
 
     if (event && data) {
-      const payload: Message = {
+      const payload = {
         from,
         from_user_id: bsuid,
         name: isSystemMessage ? undefined : contactName,
@@ -249,8 +269,8 @@ export const getExpressRoute = (
         timestamp,
         type: event,
         data: context ? { ...data, context } : data,
-        contact: contacts?.[0] as unknown as WebhookContact, // Populate contact with cast
-      };
+        contact: contacts?.[0] as unknown as WebhookContact,
+      } as Message;
 
       [
         `bot-${fromPhoneNumberId}-message`,

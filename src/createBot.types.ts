@@ -5,6 +5,10 @@ import {
   TemplateComponent,
   MarkAsRead,
   Message as WhatsappMessageObject,
+  FlowMode,
+  FlowAction,
+  FlowActionPayload,
+  FlowIdentifier,
 } from './messages.types';
 import {
   UploadMediaResult,
@@ -41,6 +45,24 @@ export type SpecificEventCallback<K extends PubSubEvent> = (
 export type BaseOptionType = {
   context?: WhatsappMessageObject['context'];
 };
+
+// 👇 Options for sending flow messages
+export interface SendFlowOptions extends BaseOptionType {
+  /** Header for the flow message */
+  header?: InteractiveHeader;
+  /** Body text for the flow message (required) */
+  body: string;
+  /** Footer text for the flow message */
+  footer?: string;
+  /** Flow mode: 'draft' or 'published' (default: 'published') */
+  mode?: FlowMode;
+  /** Token to identify the flow session */
+  flowToken?: string;
+  /** Action type: 'navigate' or 'data_exchange' (default: 'navigate') */
+  flowAction?: FlowAction;
+  /** Payload for navigate action with initial screen and data */
+  flowActionPayload?: FlowActionPayload;
+}
 
 export interface Bot {
   on(event: 'message', cb: MessageEventCallback): string;
@@ -162,6 +184,39 @@ export interface Bot {
       footerText?: string;
       header?: InteractiveHeader;
     },
+  ) => Promise<SendMessageResult>;
+
+  /**
+   * Send a WhatsApp Flow message to a user.
+   *
+   * @param to - Recipient phone number
+   * @param flowIdOrName - Flow ID string, or object with flow_id or flow_name
+   * @param ctaText - Call-to-action button text (max 20 chars, no emoji)
+   * @param options - Flow message options including body text
+   *
+   * @example
+   * ```typescript
+   * // Send flow by ID
+   * await bot.sendFlow('1234567890', 'flow_123', 'Book Now', {
+   *   body: 'Click below to book an appointment',
+   * });
+   *
+   * // Send flow by name with initial screen data
+   * await bot.sendFlow('1234567890', { flow_name: 'booking_flow' }, 'Start', {
+   *   body: 'Begin your booking',
+   *   flowAction: 'navigate',
+   *   flowActionPayload: {
+   *     screen: 'WELCOME',
+   *     data: { user_name: 'John' },
+   *   },
+   * });
+   * ```
+   */
+  sendFlow: (
+    to: string,
+    flowIdOrName: string | FlowIdentifier,
+    ctaText: string,
+    options: SendFlowOptions,
   ) => Promise<SendMessageResult>;
 
   markAsRead: (

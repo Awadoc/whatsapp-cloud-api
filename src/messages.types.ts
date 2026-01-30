@@ -131,37 +131,32 @@ export interface InteractiveURL {
   };
 }
 
-export type BaseFlowParameters = {
+export type FlowActionPayload = {
+  screen: string;
+  data?: Record<string, string | number | boolean | null | object>;
+};
+
+export type FlowMode = 'draft' | 'published';
+export type FlowAction = 'navigate' | 'data_exchange';
+
+export interface BaseFlowParameters {
   flow_message_version: '3';
   flow_token?: string;
   flow_cta: string;
-  mode?: 'draft' | 'published';
-} & {
-  flow_action?: 'navigate';
-  flow_action_payload?:
-  | string
-  | {
-    screen: string;
-    data: {
-      [key: string]: string | number | boolean | null;
-    };
-  };
-} & {
-  flow_action?: 'data_exchange';
-};
+  mode?: FlowMode;
+  flow_action?: FlowAction;
+  flow_action_payload?: FlowActionPayload;
+}
+
+export type FlowIdentifier =
+  | { flow_id: string; flow_name?: never }
+  | { flow_name: string; flow_id?: never };
+
 export interface InteractiveFlow {
   type: 'flow';
   action: {
     name: 'flow';
-    parameters: BaseFlowParameters &
-    (
-      | {
-        flow_id: string;
-      }
-      | {
-        flow_name: string;
-      }
-    );
+    parameters: BaseFlowParameters & FlowIdentifier;
   };
 }
 
@@ -182,6 +177,8 @@ export interface InteractiveListMessage {
 
 type Interactive = InteractiveBase &
 (InteractiveReplyButton | InteractiveListMessage | InteractiveURL);
+
+type InteractiveWithFlow = InteractiveBase & InteractiveFlow;
 
 export interface Location {
   longitude: number;
@@ -337,6 +334,11 @@ export interface ImageMessage extends Message {
 export interface InteractiveMessage extends Message {
   type: 'interactive';
   interactive: Interactive;
+}
+
+export interface FlowMessage extends Message {
+  type: 'interactive';
+  interactive: InteractiveWithFlow;
 }
 
 export interface LocationMessage extends Message {

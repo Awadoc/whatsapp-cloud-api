@@ -90,7 +90,16 @@ export interface FreeFormObjectMap {
     new_wa_id: string;
     type: 'user_changed_number';
   };
-  nfm_reply: any; // Need more info on this structure
+  nfm_reply: {
+    /** JSON string containing flow response data from CompleteAction */
+    response_json: string;
+    /** Body text from the flow completion message */
+    body: string;
+    /** Flow name */
+    name: string;
+    /** Parsed response data (populated by webhook handler) */
+    response?: Record<string, unknown>;
+  };
   reaction: {
     message_id: string;
     emoji: string;

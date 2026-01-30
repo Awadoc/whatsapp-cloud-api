@@ -95,6 +95,56 @@ bot.on("message", (msg) => console.log(msg));
 - ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router).
 - ✅ Full TypeScript typing & dev experience.
 - ✅ Custom routing support for integration with existing apps.
+- ✅ **WhatsApp Flows** - Full support for creating, managing, and handling interactive flows.
+
+---
+
+## 📱 WhatsApp Flows
+
+This library provides comprehensive support for WhatsApp Flows - interactive, form-based experiences within WhatsApp.
+
+### Quick Example
+
+```ts
+import { createBot } from "@awadoc/whatsapp-cloud-api";
+import { createFlowManager, FlowJSON, Screen, TextInput, Footer, CompleteAction } from "@awadoc/whatsapp-cloud-api/flows";
+
+const bot = createBot(phoneId, accessToken);
+const flows = createFlowManager(wabaId, accessToken);
+
+// Create and configure a flow
+const { id: flowId } = await flows.create({ name: "Feedback Form" });
+
+const flowJson = new FlowJSON()
+  .addScreen(
+    new Screen("FEEDBACK")
+      .setTitle("Share Feedback")
+      .addComponent(new TextInput("feedback", "Your feedback"))
+      .addComponent(new Footer("Submit", new CompleteAction()))
+  );
+
+await flows.updateJson(flowId, flowJson);
+await flows.publish(flowId);
+
+// Send the flow to a user
+await bot.sendFlow(userPhone, flowId, "Give Feedback", {
+  body: "We value your opinion!",
+});
+
+// Handle flow completion
+bot.on("nfm_reply", (msg) => {
+  console.log("Feedback received:", msg.data.response);
+});
+```
+
+### Flows Documentation
+
+- **[Overview](./docs/flows/README.md)** - Introduction to WhatsApp Flows
+- **[Sending Flows](./docs/flows/sending-flows.md)** - Send flow messages to users
+- **[Flow Management](./docs/flows/flow-management.md)** - Create, update, publish flows via API
+- **[Flow JSON Builder](./docs/flows/flow-json-builder.md)** - Type-safe flow building
+- **[Data Exchange Endpoint](./docs/flows/data-exchange-endpoint.md)** - Handle dynamic flow data
+- **[Handling Responses](./docs/flows/handling-responses.md)** - Process flow completions
 
 ---
 

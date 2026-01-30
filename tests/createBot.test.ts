@@ -4,7 +4,6 @@ import express from 'express';
 import path from 'path';
 import { createBot } from '../src';
 import { getExpressRoute } from '../src/express';
-import { FreeFormObject, FreeFormObjectMap } from '../src/utils/misc';
 import { PubSubEvents } from '../src/utils/pubSub';
 
 const expectSendMessageResult = (result: any): void => {
@@ -410,9 +409,9 @@ describe('server functions', () => {
   });
 
   test('send invalid body', async () => {
-    const sendRequest = (data: FreeFormObject<keyof FreeFormObjectMap>) => {
+    const sendRequest = (data: unknown) => {
       const req = request(app).post(webhookPath);
-      return req.send(data).expect(200);
+      return req.send(data as object).expect(200);
     };
 
     const data = [
@@ -632,7 +631,7 @@ describe('server functions', () => {
       }
 
       expect(typeof message.data === 'object').toBe(true);
-      const { data } = message;
+      const data = message.data as any;
 
       // Replace the switch statement in the existing 'listen for new messages' test
       switch (message.type) {

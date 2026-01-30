@@ -16,6 +16,18 @@
     "./next": {
       "types": "./dist/next.d.ts",
       "default": "./dist/next.js"
+    },
+    "./flows": {
+      "types": "./dist/flows/index.d.ts",
+      "default": "./dist/flows/index.js"
+    },
+    "./flows/endpoint/express": {
+      "types": "./dist/flows/endpoint/express.d.ts",
+      "default": "./dist/flows/endpoint/express.js"
+    },
+    "./flows/endpoint/next": {
+      "types": "./dist/flows/endpoint/next.d.ts",
+      "default": "./dist/flows/endpoint/next.js"
     }
   },
   "typesVersions": {
@@ -25,6 +37,15 @@
       ],
       "next": [
         "dist/next.d.ts"
+      ],
+      "flows": [
+        "dist/flows/index.d.ts"
+      ],
+      "flows/endpoint/express": [
+        "dist/flows/endpoint/express.d.ts"
+      ],
+      "flows/endpoint/next": [
+        "dist/flows/endpoint/next.d.ts"
       ]
     }
   },
@@ -97,6 +118,8 @@
     "whatsapp-cloud-api",
     "whatsapp-business",
     "whatsapp-business-api",
+    "whatsapp-flows",
+    "flows",
     "bot",
     "whatsapp-bot",
     "chatbot",
