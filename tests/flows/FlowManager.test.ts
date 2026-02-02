@@ -1,13 +1,14 @@
-import * as fs from "fs";
-import * as path from "path";
-import { createBot } from "../../src";
-import { createFlowManager, FlowJSON, Screen } from "../../src/flows";
+import { createBot } from '../../src';
+/* eslint-disable no-console */
+import { createFlowManager } from '../../src/flows/FlowManager';
 import {
+  FlowJSON,
+  Screen,
   TextHeading,
   TextBody,
   Footer,
   CompleteAction,
-} from "../../src/flows/json/components";
+} from '../../src/flows/json';
 
 // Load environment variables
 const wabaId = process.env.WABA_ID;
@@ -17,8 +18,7 @@ const to = process.env.TO;
 const version = process.env.VERSION;
 
 // Skip tests if environment variables are not set
-const shouldRunIntegrationTests =
-  wabaId && accessToken && fromPhoneNumberId && to;
+const shouldRunIntegrationTests = wabaId && accessToken && fromPhoneNumberId && to;
 
 const describeIf = shouldRunIntegrationTests ? describe : describe.skip;
 
@@ -41,10 +41,12 @@ async function logOperation<T>(
     console.log(
       `[RESULT] ${JSON.stringify(
         result,
-        (key, value) =>
-          key === "data" && Array.isArray(value)
-            ? `[Array(${value.length})]`
-            : value,
+        (key, value) => {
+          if (key === 'data' && Array.isArray(value)) {
+            return `[Array(${value.length})]`;
+          }
+          return value;
+        },
         2,
       )}`,
     );
@@ -56,7 +58,7 @@ async function logOperation<T>(
 
     // Log helpful details based on error type
     console.error(`[ERROR TYPE] ${typeof error}`);
-    console.error(`[RAW ERROR]`, error);
+    console.error('[RAW ERROR]', error);
     if (error.response?.data) {
       console.error(
         `[API ERROR DATA] ${JSON.stringify(error.response.data, null, 2)}`,
@@ -72,7 +74,7 @@ async function logOperation<T>(
   }
 }
 
-describeIf("FlowManager Lifecycle Integration Test", () => {
+describeIf('FlowManager Lifecycle Integration Test', () => {
   const flowManager = createFlowManager(wabaId!, accessToken!, {
     version: version as any,
   });
@@ -84,7 +86,7 @@ describeIf("FlowManager Lifecycle Integration Test", () => {
   // Cleanup in case of failure
   afterAll(async () => {
     if (flowId) {
-      console.log("\n--- CLEANUP ---");
+      console.log('\n--- CLEANUP ---');
       try {
         await flowManager.delete(flowId);
         console.log(`Cleanup: Deleted flow ${flowId}`);
@@ -96,18 +98,18 @@ describeIf("FlowManager Lifecycle Integration Test", () => {
     }
   }, 30000);
 
-  it("should execute the full flow lifecycle: Create -> Send -> Update -> Send -> Publish -> Send -> Deprecate -> Delete", async () => {
-    console.log("Starting Flow Lifecycle Sequence...");
+  it('should execute the full flow lifecycle: Create -> Send -> Update -> Send -> Publish -> Send -> Deprecate -> Delete', async () => {
+    console.log('Starting Flow Lifecycle Sequence...');
 
     // -------------------------------------------------------------------------
     // 1. Create Flow as Draft
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 1: CREATE FLOW (DRAFT)");
-    const createResult = await logOperation("Create Flow", async () => {
+    console.log('\n>>> STEP 1: CREATE FLOW (DRAFT)');
+    const createResult = await logOperation('Create Flow', async () => {
       const randomSuffix = Math.floor(Math.random() * 10000).toString();
       return flowManager.create({
         name: `Flow_Test_${randomSuffix}`,
-        categories: ["OTHER"],
+        categories: ['OTHER'],
       });
     });
     flowId = createResult.id;
@@ -116,29 +118,24 @@ describeIf("FlowManager Lifecycle Integration Test", () => {
     // -------------------------------------------------------------------------
     // Setup Initial Flow Content (required before sending)
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 1.1: UPLOAD INITIAL JSON");
-    const initialJson = new FlowJSON("6.0").addScreen(
-      new Screen("SCREEN_ONE")
-        .setTitle("Draft v1")
+    console.log('\n>>> STEP 1.1: UPLOAD INITIAL JSON');
+    const initialJson = new FlowJSON('6.0').addScreen(
+      new Screen('SCREEN_ONE')
+        .setTitle('Draft v1')
         .setTerminal(true)
         .addComponents(
-          new TextHeading("This is Draft Version 1"),
-          new TextBody("If you see this, the initial draft creation works."),
-          new Footer("Done", new CompleteAction()),
+          new TextHeading('This is Draft Version 1'),
+          new TextBody('If you see this, the initial draft creation works.'),
+          new Footer('Done', new CompleteAction()),
         ),
     );
 
-    const update1Result = await logOperation(
-      "Upload Initial JSON",
-      async () => {
-        return flowManager.updateJson(flowId, initialJson);
-      },
-    );
+    const update1Result = await logOperation('Upload Initial JSON', async () => flowManager.updateJson(flowId, initialJson));
 
     // Check for validation errors and throw if found, to separate API success from logic failure
     if (
-      update1Result.validation_errors &&
-      update1Result.validation_errors.length > 0
+      update1Result.validation_errors
+      && update1Result.validation_errors.length > 0
     ) {
       throw new Error(
         `Flow JSON Validation Failed: ${JSON.stringify(update1Result.validation_errors)}`,
@@ -148,38 +145,34 @@ describeIf("FlowManager Lifecycle Integration Test", () => {
     // -------------------------------------------------------------------------
     // 2. Send Flow (Draft)
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 2: SEND FLOW (DRAFT)");
-    await logOperation("Send Draft Flow v1", async () => {
-      return bot.sendFlow(to!, flowId, "Open Draft v1", {
-        body: "Testing Lifecycle: Draft Flow v1",
-        mode: "draft",
-        flowAction: "navigate",
-        flowActionPayload: { screen: "SCREEN_ONE" },
-      });
-    });
+    console.log('\n>>> STEP 2: SEND FLOW (DRAFT)');
+    await logOperation('Send Draft Flow v1', async () => bot.sendFlow(to!, flowId, 'Open Draft v1', {
+      body: 'Testing Lifecycle: Draft Flow v1',
+      mode: 'draft',
+      flowAction: 'navigate',
+      flowActionPayload: { screen: 'SCREEN_ONE' },
+    }));
 
     // -------------------------------------------------------------------------
     // 3. Update Flow with New Screen
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 3: UPDATE FLOW (NEW SCREEN)");
-    const updatedJson = new FlowJSON("6.0").addScreen(
-      new Screen("SCREEN_ONE")
-        .setTitle("Draft v2 (Updated)")
+    console.log('\n>>> STEP 3: UPDATE FLOW (NEW SCREEN)');
+    const updatedJson = new FlowJSON('6.0').addScreen(
+      new Screen('SCREEN_ONE')
+        .setTitle('Draft v2 (Updated)')
         .setTerminal(true)
         .addComponents(
-          new TextHeading("This is Draft Version 2"),
-          new TextBody("The flow has been updated with new content."),
-          new Footer("Finish", new CompleteAction()),
+          new TextHeading('This is Draft Version 2'),
+          new TextBody('The flow has been updated with new content.'),
+          new Footer('Finish', new CompleteAction()),
         ),
     );
 
-    const update2Result = await logOperation("Update Flow JSON", async () => {
-      return flowManager.updateJson(flowId, updatedJson);
-    });
+    const update2Result = await logOperation('Update Flow JSON', async () => flowManager.updateJson(flowId, updatedJson));
 
     if (
-      update2Result.validation_errors &&
-      update2Result.validation_errors.length > 0
+      update2Result.validation_errors
+      && update2Result.validation_errors.length > 0
     ) {
       throw new Error(
         `Flow JSON Validation Failed: ${JSON.stringify(update2Result.validation_errors)}`,
@@ -189,59 +182,51 @@ describeIf("FlowManager Lifecycle Integration Test", () => {
     // -------------------------------------------------------------------------
     // 4. Send Flow (Draft - Updated)
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 4: SEND FLOW (UPDATED DRAFT)");
-    await logOperation("Send Draft Flow v2", async () => {
-      return bot.sendFlow(to!, flowId, "Open Draft v2", {
-        body: "Testing Lifecycle: Draft Flow v2 (Updated)",
-        mode: "draft",
-        flowAction: "navigate",
-        flowActionPayload: { screen: "SCREEN_ONE" },
-      });
-    });
+    console.log('\n>>> STEP 4: SEND FLOW (UPDATED DRAFT)');
+    await logOperation('Send Draft Flow v2', async () => bot.sendFlow(to!, flowId, 'Open Draft v2', {
+      body: 'Testing Lifecycle: Draft Flow v2 (Updated)',
+      mode: 'draft',
+      flowAction: 'navigate',
+      flowActionPayload: { screen: 'SCREEN_ONE' },
+    }));
 
     // -------------------------------------------------------------------------
     // 5. Publish Flow
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 5: PUBLISH FLOW");
-    await logOperation("Publish Flow", async () => {
-      return flowManager.publish(flowId);
-    });
+    console.log('\n>>> STEP 5: PUBLISH FLOW');
+    await logOperation('Publish Flow', async () => flowManager.publish(flowId));
 
     // -------------------------------------------------------------------------
     // 6. Send Flow (Published)
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 6: SEND FLOW (PUBLISHED)");
+    console.log('\n>>> STEP 6: SEND FLOW (PUBLISHED)');
     // Small delay to ensure propagation if necessary, though usually instant
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    await logOperation("Send Published Flow", async () => {
-      return bot.sendFlow(to!, flowId, "Open Published Flow", {
-        body: "Testing Lifecycle: Published Flow",
-        mode: "published",
-        flowAction: "navigate",
-        flowActionPayload: { screen: "SCREEN_ONE" },
-      });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 2000);
     });
+
+    await logOperation('Send Published Flow', async () => bot.sendFlow(to!, flowId, 'Open Published Flow', {
+      body: 'Testing Lifecycle: Published Flow',
+      mode: 'published',
+      flowAction: 'navigate',
+      flowActionPayload: { screen: 'SCREEN_ONE' },
+    }));
 
     // -------------------------------------------------------------------------
     // 7. Deprecate Flow
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 7: DEPRECATE FLOW");
-    await logOperation("Deprecate Flow", async () => {
-      return flowManager.deprecate(flowId);
-    });
+    console.log('\n>>> STEP 7: DEPRECATE FLOW');
+    await logOperation('Deprecate Flow', async () => flowManager.deprecate(flowId));
 
     // -------------------------------------------------------------------------
     // 8. Delete Flow
     // -------------------------------------------------------------------------
-    console.log("\n>>> STEP 8: DELETE FLOW");
+    console.log('\n>>> STEP 8: DELETE FLOW');
     try {
-      await logOperation("Delete Flow", async () => {
-        return flowManager.delete(flowId);
-      });
+      await logOperation('Delete Flow', async () => flowManager.delete(flowId));
     } catch (error) {
       console.log(
-        "NOTE: Deletion failed. This is often expected for flows that were published/deprecated, as WhatsApp may not allow immediate deletion.",
+        'NOTE: Deletion failed. This is often expected for flows that were published/deprecated, as WhatsApp may not allow immediate deletion.',
       );
       // We don't fail the test here if it's just a permission issue with deleting published flows
       // But we do want to see the error log above.

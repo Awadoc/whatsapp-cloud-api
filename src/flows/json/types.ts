@@ -8,12 +8,12 @@
 /**
  * Supported Flow JSON versions
  */
-export type FlowVersion = "3.0" | "3.1" | "4.0" | "5.0" | "6.0";
+export type FlowVersion = '3.0' | '3.1' | '4.0' | '5.0' | '6.0';
 
 /**
  * Supported data API versions for data exchange
  */
-export type DataApiVersion = "3.0" | "4.0";
+export type DataApiVersion = '3.0' | '4.0';
 
 // ============================================================================
 // Reference Types (for type-safe data binding)
@@ -55,11 +55,11 @@ export type DynamicValue<T = string> = T | DynamicRef;
  * Data source type for screen data declarations
  */
 export type DataSourceType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "object"
-  | "array";
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'array';
 
 /**
  * Data source declaration for screen data
@@ -91,49 +91,49 @@ export interface BaseComponentSchema {
  * Form component schema
  */
 export interface FormSchema extends BaseComponentSchema {
-  type: "Form";
+  type: 'Form';
   name: string;
   children: ComponentSchema[];
-  "init-values"?: Record<string, unknown>;
-  "error-messages"?: Record<string, string | DynamicRef>;
+  'init-values'?: Record<string, unknown>;
+  'error-messages'?: Record<string, string | DynamicRef>;
 }
 
 /**
  * TextInput component schema
  */
 export interface TextInputSchema extends BaseComponentSchema {
-  type: "TextInput";
+  type: 'TextInput';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "input-type"?:
-    | "text"
-    | "number"
-    | "email"
-    | "password"
-    | "passcode"
-    | "phone";
-  "min-chars"?: number;
-  "max-chars"?: number;
-  "helper-text"?: string | DynamicRef;
+  'input-type'?:
+  | 'text'
+  | 'number'
+  | 'email'
+  | 'password'
+  | 'passcode'
+  | 'phone';
+  'min-chars'?: number;
+  'max-chars'?: number;
+  'helper-text'?: string | DynamicRef;
   enabled?: boolean | DynamicRef;
-  "init-value"?: string | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
  * TextArea component schema
  */
 export interface TextAreaSchema extends BaseComponentSchema {
-  type: "TextArea";
+  type: 'TextArea';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "max-length"?: number;
-  "helper-text"?: string | DynamicRef;
+  'max-length'?: number;
+  'helper-text'?: string | DynamicRef;
   enabled?: boolean | DynamicRef;
-  "init-value"?: string | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
@@ -150,14 +150,14 @@ export interface DropdownOptionSchema {
  * Dropdown component schema
  */
 export interface DropdownSchema extends BaseComponentSchema {
-  type: "Dropdown";
+  type: 'Dropdown';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "data-source": DynamicRef | DropdownOptionSchema[];
+  'data-source': DynamicRef | DropdownOptionSchema[];
   enabled?: boolean | DynamicRef;
-  "init-value"?: string | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
@@ -173,14 +173,14 @@ export interface RadioOptionSchema {
  * RadioButtonsGroup component schema
  */
 export interface RadioButtonsGroupSchema extends BaseComponentSchema {
-  type: "RadioButtonsGroup";
+  type: 'RadioButtonsGroup';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "data-source": DynamicRef | RadioOptionSchema[];
+  'data-source': DynamicRef | RadioOptionSchema[];
   enabled?: boolean | DynamicRef;
-  "init-value"?: string | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
@@ -196,40 +196,40 @@ export interface CheckboxOptionSchema {
  * CheckboxGroup component schema
  */
 export interface CheckboxGroupSchema extends BaseComponentSchema {
-  type: "CheckboxGroup";
+  type: 'CheckboxGroup';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "min-selected-items"?: number;
-  "max-selected-items"?: number;
-  "data-source": DynamicRef | CheckboxOptionSchema[];
+  'min-selected-items'?: number;
+  'max-selected-items'?: number;
+  'data-source': DynamicRef | CheckboxOptionSchema[];
   enabled?: boolean | DynamicRef;
-  "init-value"?: string[] | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string[] | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
  * DatePicker component schema
  */
 export interface DatePickerSchema extends BaseComponentSchema {
-  type: "DatePicker";
+  type: 'DatePicker';
   name: string;
   label: string | DynamicRef;
   required?: boolean;
-  "min-date"?: string | DynamicRef;
-  "max-date"?: string | DynamicRef;
-  "unavailable-dates"?: string[] | DynamicRef;
-  "helper-text"?: string | DynamicRef;
+  'min-date'?: string | DynamicRef;
+  'max-date'?: string | DynamicRef;
+  'unavailable-dates'?: string[] | DynamicRef;
+  'helper-text'?: string | DynamicRef;
   enabled?: boolean | DynamicRef;
-  "init-value"?: string | DynamicRef;
-  "error-message"?: string | DynamicRef;
+  'init-value'?: string | DynamicRef;
+  'error-message'?: string | DynamicRef;
 }
 
 /**
  * TextHeading component schema
  */
 export interface TextHeadingSchema extends BaseComponentSchema {
-  type: "TextHeading";
+  type: 'TextHeading';
   text: string | DynamicRef;
 }
 
@@ -237,7 +237,7 @@ export interface TextHeadingSchema extends BaseComponentSchema {
  * TextSubheading component schema
  */
 export interface TextSubheadingSchema extends BaseComponentSchema {
-  type: "TextSubheading";
+  type: 'TextSubheading';
   text: string | DynamicRef;
 }
 
@@ -245,9 +245,9 @@ export interface TextSubheadingSchema extends BaseComponentSchema {
  * TextBody component schema
  */
 export interface TextBodySchema extends BaseComponentSchema {
-  type: "TextBody";
+  type: 'TextBody';
   text: string | DynamicRef;
-  "font-weight"?: "normal" | "bold";
+  'font-weight'?: 'normal' | 'bold';
   strikethrough?: boolean;
 }
 
@@ -255,9 +255,9 @@ export interface TextBodySchema extends BaseComponentSchema {
  * TextCaption component schema
  */
 export interface TextCaptionSchema extends BaseComponentSchema {
-  type: "TextCaption";
+  type: 'TextCaption';
   text: string | DynamicRef;
-  "font-weight"?: "normal" | "bold";
+  'font-weight'?: 'normal' | 'bold';
   strikethrough?: boolean;
 }
 
@@ -265,36 +265,36 @@ export interface TextCaptionSchema extends BaseComponentSchema {
  * Image component schema
  */
 export interface ImageSchema extends BaseComponentSchema {
-  type: "Image";
+  type: 'Image';
   src: string | DynamicRef;
   width?: number;
   height?: number;
-  "scale-type"?: "cover" | "contain";
-  "aspect-ratio"?: number;
-  "alt-text"?: string;
+  'scale-type'?: 'cover' | 'contain';
+  'aspect-ratio'?: number;
+  'alt-text'?: string;
 }
 
 /**
  * EmbeddedLink component schema
  */
 export interface EmbeddedLinkSchema extends BaseComponentSchema {
-  type: "EmbeddedLink";
+  type: 'EmbeddedLink';
   text: string | DynamicRef;
-  "on-click-action": ActionSchema;
+  'on-click-action': ActionSchema;
 }
 
 /**
  * Action types for on-click-action
  */
-export type ActionType = "navigate" | "data_exchange" | "complete" | "open_url";
+export type ActionType = 'navigate' | 'data_exchange' | 'complete' | 'open_url';
 
 /**
  * Navigate action schema
  */
 export interface NavigateActionSchema {
-  name: "navigate";
+  name: 'navigate';
   next: {
-    type: "screen";
+    type: 'screen';
     name: string;
   };
   payload?: Record<string, unknown>;
@@ -304,7 +304,7 @@ export interface NavigateActionSchema {
  * Data exchange action schema
  */
 export interface DataExchangeActionSchema {
-  name: "data_exchange";
+  name: 'data_exchange';
   payload?: Record<string, unknown>;
 }
 
@@ -312,7 +312,7 @@ export interface DataExchangeActionSchema {
  * Complete action schema
  */
 export interface CompleteActionSchema {
-  name: "complete";
+  name: 'complete';
   payload?: Record<string, unknown>;
 }
 
@@ -320,7 +320,7 @@ export interface CompleteActionSchema {
  * Open URL action schema
  */
 export interface OpenUrlActionSchema {
-  name: "open_url";
+  name: 'open_url';
   url: string | DynamicRef;
 }
 
@@ -337,11 +337,11 @@ export type ActionSchema =
  * Footer component schema
  */
 export interface FooterSchema extends BaseComponentSchema {
-  type: "Footer";
+  type: 'Footer';
   label: string | DynamicRef;
-  "on-click-action": ActionSchema;
-  "left-caption"?: string | DynamicRef;
-  "center-caption"?: string | DynamicRef;
+  'on-click-action': ActionSchema;
+  'left-caption'?: string | DynamicRef;
+  'center-caption'?: string | DynamicRef;
   enabled?: boolean | DynamicRef;
 }
 
@@ -371,7 +371,7 @@ export type ComponentSchema =
 /**
  * Layout type (currently only SingleColumnLayout is supported)
  */
-export type LayoutType = "SingleColumnLayout";
+export type LayoutType = 'SingleColumnLayout';
 
 /**
  * Layout schema

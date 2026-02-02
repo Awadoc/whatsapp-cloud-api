@@ -9,8 +9,8 @@ import type {
   ImageSchema,
   TextCaptionSchema,
   DynamicRef,
-} from "../types";
-import { Component } from "./base";
+} from '../types';
+import { Component } from './base';
 
 /**
  * TextHeading component for large heading text
@@ -25,7 +25,7 @@ import { Component } from "./base";
  * ```
  */
 export class TextHeading extends Component {
-  protected readonly type = "TextHeading" as const;
+  protected readonly type = 'TextHeading' as const;
 
   /**
    * Create a text heading component
@@ -57,7 +57,7 @@ export class TextHeading extends Component {
  * ```
  */
 export class TextSubheading extends Component {
-  protected readonly type = "TextSubheading" as const;
+  protected readonly type = 'TextSubheading' as const;
 
   /**
    * Create a text subheading component
@@ -98,9 +98,9 @@ export class TextSubheading extends Component {
  * ```
  */
 export class TextBody extends Component {
-  protected readonly type = "TextBody" as const;
+  protected readonly type = 'TextBody' as const;
 
-  private _fontWeight?: "normal" | "bold";
+  private _fontWeight?: 'normal' | 'bold';
 
   private _strikethrough?: boolean;
 
@@ -120,7 +120,7 @@ export class TextBody extends Component {
    * @returns this for chaining
    */
   setBold(bold: boolean = true): this {
-    this._fontWeight = bold ? "bold" : "normal";
+    this._fontWeight = bold ? 'bold' : 'normal';
     return this;
   }
 
@@ -130,7 +130,7 @@ export class TextBody extends Component {
    * @param weight - Font weight
    * @returns this for chaining
    */
-  setFontWeight(weight: "normal" | "bold"): this {
+  setFontWeight(weight: 'normal' | 'bold'): this {
     this._fontWeight = weight;
     return this;
   }
@@ -157,7 +157,7 @@ export class TextBody extends Component {
     };
 
     if (this._fontWeight !== undefined) {
-      result["font-weight"] = this._fontWeight;
+      result['font-weight'] = this._fontWeight;
     }
     if (this._strikethrough !== undefined) {
       result.strikethrough = this._strikethrough;
@@ -189,13 +189,13 @@ export class TextBody extends Component {
  * ```
  */
 export class Image extends Component {
-  protected readonly type = "Image" as const;
+  protected readonly type = 'Image' as const;
 
   private _width?: number;
 
   private _height?: number;
 
-  private _scaleType?: "cover" | "contain";
+  private _scaleType?: 'cover' | 'contain';
 
   private _aspectRatio?: number;
 
@@ -238,7 +238,7 @@ export class Image extends Component {
    * @param scaleType - How to scale the image
    * @returns this for chaining
    */
-  setScaleType(scaleType: "cover" | "contain"): this {
+  setScaleType(scaleType: 'cover' | 'contain'): this {
     this._scaleType = scaleType;
     return this;
   }
@@ -282,13 +282,13 @@ export class Image extends Component {
       result.height = this._height;
     }
     if (this._scaleType !== undefined) {
-      result["scale-type"] = this._scaleType;
+      result['scale-type'] = this._scaleType;
     }
     if (this._aspectRatio !== undefined) {
-      result["aspect-ratio"] = this._aspectRatio;
+      result['aspect-ratio'] = this._aspectRatio;
     }
     if (this._altText !== undefined) {
-      result["alt-text"] = this._altText;
+      result['alt-text'] = this._altText;
     }
 
     return result;
@@ -304,7 +304,7 @@ export class Image extends Component {
  * ```
  */
 export class TextCaption extends Component {
-  protected readonly type = "TextCaption" as const;
+  protected readonly type = 'TextCaption' as const;
 
   /**
    * Create a text caption component

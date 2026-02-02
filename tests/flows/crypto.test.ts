@@ -1,46 +1,47 @@
-import crypto from "crypto";
+/* eslint-disable no-bitwise */
+import crypto from 'crypto';
 import {
   generateKeyPair,
   decryptRequest,
   encryptResponse,
   validateSignature,
-} from "../../src/flows/crypto";
+} from '../../src/flows/crypto';
 import type {
   EncryptedFlowRequest,
   DecryptedFlowRequest,
-} from "../../src/flows/crypto/types";
+} from '../../src/flows/crypto/types';
 
-describe("Crypto Utilities", () => {
-  describe("generateKeyPair", () => {
-    it("should generate valid RSA key pair", () => {
+describe('Crypto Utilities', () => {
+  describe('generateKeyPair', () => {
+    it('should generate valid RSA key pair', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       expect(privateKey).toBeDefined();
       expect(publicKey).toBeDefined();
-      expect(typeof privateKey).toBe("string");
-      expect(typeof publicKey).toBe("string");
+      expect(typeof privateKey).toBe('string');
+      expect(typeof publicKey).toBe('string');
     });
 
-    it("should generate keys in PEM format", () => {
+    it('should generate keys in PEM format', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
-      expect(privateKey).toContain("-----BEGIN PRIVATE KEY-----");
-      expect(privateKey).toContain("-----END PRIVATE KEY-----");
-      expect(publicKey).toContain("-----BEGIN PUBLIC KEY-----");
-      expect(publicKey).toContain("-----END PUBLIC KEY-----");
+      expect(privateKey).toContain('-----BEGIN PRIVATE KEY-----');
+      expect(privateKey).toContain('-----END PRIVATE KEY-----');
+      expect(publicKey).toContain('-----BEGIN PUBLIC KEY-----');
+      expect(publicKey).toContain('-----END PUBLIC KEY-----');
     });
 
-    it("should generate 2048-bit RSA keys", () => {
+    it('should generate 2048-bit RSA keys', () => {
       const { privateKey } = generateKeyPair();
 
       // Parse the key to verify it's RSA 2048
       const keyObject = crypto.createPrivateKey(privateKey);
-      expect(keyObject.asymmetricKeyType).toBe("rsa");
+      expect(keyObject.asymmetricKeyType).toBe('rsa');
       // 2048 bits = 256 bytes, asymmetricKeyDetails.modulusLength is in bits
       expect(keyObject.asymmetricKeyDetails?.modulusLength).toBe(2048);
     });
 
-    it("should generate unique key pairs each time", () => {
+    it('should generate unique key pairs each time', () => {
       const pair1 = generateKeyPair();
       const pair2 = generateKeyPair();
 
@@ -48,16 +49,16 @@ describe("Crypto Utilities", () => {
       expect(pair1.publicKey).not.toBe(pair2.publicKey);
     });
 
-    it("should generate matching key pairs (can decrypt what public key encrypts)", () => {
+    it('should generate matching key pairs (can decrypt what public key encrypts)', () => {
       const { privateKey, publicKey } = generateKeyPair();
-      const testData = Buffer.from("test message");
+      const testData = Buffer.from('test message');
 
       // Encrypt with public key
       const encrypted = crypto.publicEncrypt(
         {
           key: publicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
+          oaepHash: 'sha256',
         },
         testData,
       );
@@ -67,16 +68,16 @@ describe("Crypto Utilities", () => {
         {
           key: privateKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
+          oaepHash: 'sha256',
         },
         encrypted,
       );
 
-      expect(decrypted.toString()).toBe("test message");
+      expect(decrypted.toString()).toBe('test message');
     });
   });
 
-  describe("encryptResponse and decryptRequest", () => {
+  describe('encryptResponse and decryptRequest', () => {
     // Helper to simulate WhatsApp's encryption process (encrypt a request)
     function encryptRequestForTesting(
       data: DecryptedFlowRequest,
@@ -87,9 +88,9 @@ describe("Crypto Utilities", () => {
       const iv = crypto.randomBytes(12);
 
       // Encrypt the data with AES-GCM
-      const cipher = crypto.createCipheriv("aes-128-gcm", aesKey, iv);
+      const cipher = crypto.createCipheriv('aes-128-gcm', aesKey, iv);
       const encrypted = Buffer.concat([
-        cipher.update(JSON.stringify(data), "utf-8"),
+        cipher.update(JSON.stringify(data), 'utf-8'),
         cipher.final(),
         cipher.getAuthTag(),
       ]);
@@ -99,30 +100,30 @@ describe("Crypto Utilities", () => {
         {
           key: publicKeyPem,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
+          oaepHash: 'sha256',
         },
         aesKey,
       );
 
       return {
         encryptedRequest: {
-          encrypted_flow_data: encrypted.toString("base64"),
-          encrypted_aes_key: encryptedAesKey.toString("base64"),
-          initial_vector: iv.toString("base64"),
+          encrypted_flow_data: encrypted.toString('base64'),
+          encrypted_aes_key: encryptedAesKey.toString('base64'),
+          initial_vector: iv.toString('base64'),
         },
         aesKey,
         iv,
       };
     }
 
-    it("should decrypt a properly encrypted request", () => {
+    it('should decrypt a properly encrypted request', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       const originalData: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "INIT",
-        flow_token: "test-flow-token-123",
-        data: { key: "value" },
+        version: '3.0',
+        action: 'INIT',
+        flow_token: 'test-flow-token-123',
+        data: { key: 'value' },
       };
 
       const { encryptedRequest } = encryptRequestForTesting(
@@ -136,26 +137,26 @@ describe("Crypto Utilities", () => {
       expect(result.iv).toBeInstanceOf(Buffer);
     });
 
-    it("should decrypt requests with all action types", () => {
+    it('should decrypt requests with all action types', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
-      const actions: DecryptedFlowRequest["action"][] = [
-        "INIT",
-        "BACK",
-        "data_exchange",
-        "ping",
+      const actions: DecryptedFlowRequest['action'][] = [
+        'INIT',
+        'BACK',
+        'data_exchange',
+        'ping',
       ];
 
       actions.forEach((action) => {
         const data: DecryptedFlowRequest = {
-          version: "3.0",
+          version: '3.0',
           action,
-          flow_token: "token-123",
+          flow_token: 'token-123',
           data: {},
         };
 
-        if (action === "data_exchange") {
-          data.screen = "CURRENT_SCREEN";
+        if (action === 'data_exchange') {
+          data.screen = 'CURRENT_SCREEN';
         }
 
         const { encryptedRequest } = encryptRequestForTesting(data, publicKey);
@@ -165,13 +166,13 @@ describe("Crypto Utilities", () => {
       });
     });
 
-    it("should return keys needed for response encryption", () => {
+    it('should return keys needed for response encryption', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       const data: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "INIT",
-        flow_token: "token",
+        version: '3.0',
+        action: 'INIT',
+        flow_token: 'token',
         data: {},
       };
 
@@ -186,34 +187,34 @@ describe("Crypto Utilities", () => {
       expect(result.iv.equals(iv)).toBe(true);
     });
 
-    it("should throw error for corrupted encrypted data", () => {
+    it('should throw error for corrupted encrypted data', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       const data: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "INIT",
-        flow_token: "token",
+        version: '3.0',
+        action: 'INIT',
+        flow_token: 'token',
         data: {},
       };
 
       const { encryptedRequest } = encryptRequestForTesting(data, publicKey);
 
       // Corrupt the encrypted data
-      encryptedRequest.encrypted_flow_data = "corrupted_base64_data";
+      encryptedRequest.encrypted_flow_data = 'corrupted_base64_data';
 
       expect(() => {
         decryptRequest(encryptedRequest, privateKey);
       }).toThrow();
     });
 
-    it("should throw error for wrong private key", () => {
+    it('should throw error for wrong private key', () => {
       const keyPair1 = generateKeyPair();
       const keyPair2 = generateKeyPair();
 
       const data: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "INIT",
-        flow_token: "token",
+        version: '3.0',
+        action: 'INIT',
+        flow_token: 'token',
         data: {},
       };
 
@@ -229,13 +230,13 @@ describe("Crypto Utilities", () => {
       }).toThrow();
     });
 
-    it("should throw error for tampered auth tag", () => {
+    it('should throw error for tampered auth tag', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       const data: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "INIT",
-        flow_token: "token",
+        version: '3.0',
+        action: 'INIT',
+        flow_token: 'token',
         data: {},
       };
 
@@ -244,10 +245,10 @@ describe("Crypto Utilities", () => {
       // Tamper with the encrypted data (modify the auth tag at the end)
       const encryptedBuffer = Buffer.from(
         encryptedRequest.encrypted_flow_data,
-        "base64",
+        'base64',
       );
       encryptedBuffer[encryptedBuffer.length - 1] ^= 0xff;
-      encryptedRequest.encrypted_flow_data = encryptedBuffer.toString("base64");
+      encryptedRequest.encrypted_flow_data = encryptedBuffer.toString('base64');
 
       expect(() => {
         decryptRequest(encryptedRequest, privateKey);
@@ -255,14 +256,14 @@ describe("Crypto Utilities", () => {
     });
   });
 
-  describe("encryptResponse", () => {
+  describe('encryptResponse', () => {
     // Helper to decrypt a response (simulating WhatsApp's decryption)
     function decryptResponseForTesting(
       encryptedResponse: string,
       aesKey: Buffer,
       iv: Buffer,
     ): object {
-      const encrypted = Buffer.from(encryptedResponse, "base64");
+      const encrypted = Buffer.from(encryptedResponse, 'base64');
 
       // Flip the IV (same as encryption does)
       const flippedIv = Buffer.alloc(iv.length);
@@ -276,7 +277,7 @@ describe("Crypto Utilities", () => {
       const authTag = encrypted.subarray(-authTagLength);
 
       const decipher = crypto.createDecipheriv(
-        "aes-128-gcm",
+        'aes-128-gcm',
         aesKey,
         flippedIv,
       );
@@ -287,16 +288,16 @@ describe("Crypto Utilities", () => {
         decipher.final(),
       ]);
 
-      return JSON.parse(decrypted.toString("utf-8"));
+      return JSON.parse(decrypted.toString('utf-8'));
     }
 
-    it("should encrypt response that can be decrypted", () => {
+    it('should encrypt response that can be decrypted', () => {
       const aesKey = crypto.randomBytes(16);
       const iv = crypto.randomBytes(12);
 
       const response = {
-        screen: "NEXT_SCREEN",
-        data: { name: "John", age: 30 },
+        screen: 'NEXT_SCREEN',
+        data: { name: 'John', age: 30 },
       };
 
       const encrypted = encryptResponse(response, aesKey, iv);
@@ -305,32 +306,32 @@ describe("Crypto Utilities", () => {
       expect(decrypted).toEqual(response);
     });
 
-    it("should return base64 encoded string", () => {
+    it('should return base64 encoded string', () => {
       const aesKey = crypto.randomBytes(16);
       const iv = crypto.randomBytes(12);
 
       const encrypted = encryptResponse({ data: {} }, aesKey, iv);
 
       // Should be valid base64
-      expect(() => Buffer.from(encrypted, "base64")).not.toThrow();
+      expect(() => Buffer.from(encrypted, 'base64')).not.toThrow();
       // Re-encoding should produce the same result (valid base64)
-      expect(Buffer.from(encrypted, "base64").toString("base64")).toBe(
+      expect(Buffer.from(encrypted, 'base64').toString('base64')).toBe(
         encrypted,
       );
     });
 
-    it("should handle complex nested response data", () => {
+    it('should handle complex nested response data', () => {
       const aesKey = crypto.randomBytes(16);
       const iv = crypto.randomBytes(12);
 
       const response = {
-        screen: "COMPLEX_SCREEN",
+        screen: 'COMPLEX_SCREEN',
         data: {
           user: {
-            name: "John Doe",
+            name: 'John Doe',
             contacts: [
-              { type: "email", value: "john@example.com" },
-              { type: "phone", value: "+1234567890" },
+              { type: 'email', value: 'john@example.com' },
+              { type: 'phone', value: '+1234567890' },
             ],
           },
           items: [1, 2, 3, 4, 5],
@@ -347,34 +348,34 @@ describe("Crypto Utilities", () => {
       expect(decrypted).toEqual(response);
     });
 
-    it("should handle error_message in response", () => {
+    it('should handle error_message in response', () => {
       const aesKey = crypto.randomBytes(16);
       const iv = crypto.randomBytes(12);
 
       const response = {
-        screen: "CURRENT_SCREEN",
-        data: { email: "invalid" },
-        error_message: "Please enter a valid email address",
+        screen: 'CURRENT_SCREEN',
+        data: { email: 'invalid' },
+        error_message: 'Please enter a valid email address',
       };
 
       const encrypted = encryptResponse(response, aesKey, iv);
       const decrypted = decryptResponseForTesting(encrypted, aesKey, iv) as any;
 
       expect(decrypted.error_message).toBe(
-        "Please enter a valid email address",
+        'Please enter a valid email address',
       );
     });
 
-    it("should handle unicode characters", () => {
+    it('should handle unicode characters', () => {
       const aesKey = crypto.randomBytes(16);
       const iv = crypto.randomBytes(12);
 
       const response = {
-        screen: "UNICODE_SCREEN",
+        screen: 'UNICODE_SCREEN',
         data: {
-          greeting: "こんにちは",
-          emoji: "🎉🚀",
-          arabic: "مرحبا",
+          greeting: 'こんにちは',
+          emoji: '🎉🚀',
+          arabic: 'مرحبا',
         },
       };
 
@@ -385,19 +386,19 @@ describe("Crypto Utilities", () => {
     });
   });
 
-  describe("round-trip encryption", () => {
-    it("should complete full request/response cycle", () => {
+  describe('round-trip encryption', () => {
+    it('should complete full request/response cycle', () => {
       const { privateKey, publicKey } = generateKeyPair();
 
       // Simulate WhatsApp sending an encrypted request
       const requestData: DecryptedFlowRequest = {
-        version: "3.0",
-        action: "data_exchange",
-        screen: "USER_INFO",
-        flow_token: "unique-flow-token-xyz",
+        version: '3.0',
+        action: 'data_exchange',
+        screen: 'USER_INFO',
+        flow_token: 'unique-flow-token-xyz',
         data: {
-          name: "John",
-          email: "john@example.com",
+          name: 'John',
+          email: 'john@example.com',
         },
       };
 
@@ -406,9 +407,9 @@ describe("Crypto Utilities", () => {
       const iv = crypto.randomBytes(12);
 
       // Encrypt request
-      const cipher = crypto.createCipheriv("aes-128-gcm", aesKey, iv);
+      const cipher = crypto.createCipheriv('aes-128-gcm', aesKey, iv);
       const encryptedData = Buffer.concat([
-        cipher.update(JSON.stringify(requestData), "utf-8"),
+        cipher.update(JSON.stringify(requestData), 'utf-8'),
         cipher.final(),
         cipher.getAuthTag(),
       ]);
@@ -417,15 +418,15 @@ describe("Crypto Utilities", () => {
         {
           key: publicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
+          oaepHash: 'sha256',
         },
         aesKey,
       );
 
       const encryptedRequest: EncryptedFlowRequest = {
-        encrypted_flow_data: encryptedData.toString("base64"),
-        encrypted_aes_key: encryptedAesKey.toString("base64"),
-        initial_vector: iv.toString("base64"),
+        encrypted_flow_data: encryptedData.toString('base64'),
+        encrypted_aes_key: encryptedAesKey.toString('base64'),
+        initial_vector: iv.toString('base64'),
       };
 
       // --- Endpoint receives and processes ---
@@ -437,10 +438,10 @@ describe("Crypto Utilities", () => {
 
       // Prepare response
       const responseData = {
-        screen: "CONFIRMATION",
+        screen: 'CONFIRMATION',
         data: {
           message: `Thank you, ${decryption.decryptedData.data.name}!`,
-          nextStep: "review",
+          nextStep: 'review',
         },
       };
 
@@ -460,13 +461,13 @@ describe("Crypto Utilities", () => {
         flippedIv[i] = decryption.iv[i] ^ 0xff;
       }
 
-      const responseBuffer = Buffer.from(encryptedResponse, "base64");
+      const responseBuffer = Buffer.from(encryptedResponse, 'base64');
       const authTagLength = 16;
       const encryptedBody = responseBuffer.subarray(0, -authTagLength);
       const authTag = responseBuffer.subarray(-authTagLength);
 
       const decipher = crypto.createDecipheriv(
-        "aes-128-gcm",
+        'aes-128-gcm',
         decryption.aesKey,
         flippedIv,
       );
@@ -476,38 +477,38 @@ describe("Crypto Utilities", () => {
         Buffer.concat([
           decipher.update(encryptedBody),
           decipher.final(),
-        ]).toString("utf-8"),
+        ]).toString('utf-8'),
       );
 
       expect(decryptedResponse).toEqual(responseData);
     });
   });
 
-  describe("validateSignature", () => {
+  describe('validateSignature', () => {
     const testPayload = '{"key":"value"}';
-    const testSecret = "my-app-secret";
+    const testSecret = 'my-app-secret';
 
     function computeSignature(payload: string, secret: string): string {
-      const hmac = crypto.createHmac("sha256", secret);
+      const hmac = crypto.createHmac('sha256', secret);
       hmac.update(payload);
-      return `sha256=${hmac.digest("hex")}`;
+      return `sha256=${hmac.digest('hex')}`;
     }
 
-    it("should return true for valid signature", () => {
+    it('should return true for valid signature', () => {
       const signature = computeSignature(testPayload, testSecret);
       const result = validateSignature(testPayload, signature, testSecret);
 
       expect(result).toBe(true);
     });
 
-    it("should return false for invalid signature", () => {
-      const wrongSignature = computeSignature(testPayload, "wrong-secret");
+    it('should return false for invalid signature', () => {
+      const wrongSignature = computeSignature(testPayload, 'wrong-secret');
       const result = validateSignature(testPayload, wrongSignature, testSecret);
 
       expect(result).toBe(false);
     });
 
-    it("should return false for tampered payload", () => {
+    it('should return false for tampered payload', () => {
       const signature = computeSignature(testPayload, testSecret);
       const tamperedPayload = '{"key":"tampered"}';
       const result = validateSignature(tamperedPayload, signature, testSecret);
@@ -515,10 +516,10 @@ describe("Crypto Utilities", () => {
       expect(result).toBe(false);
     });
 
-    it("should return false for missing sha256= prefix", () => {
-      const hmac = crypto.createHmac("sha256", testSecret);
+    it('should return false for missing sha256= prefix', () => {
+      const hmac = crypto.createHmac('sha256', testSecret);
       hmac.update(testPayload);
-      const signatureWithoutPrefix = hmac.digest("hex");
+      const signatureWithoutPrefix = hmac.digest('hex');
 
       const result = validateSignature(
         testPayload,
@@ -529,17 +530,17 @@ describe("Crypto Utilities", () => {
       expect(result).toBe(false);
     });
 
-    it("should return false for empty signature", () => {
-      const result = validateSignature(testPayload, "", testSecret);
+    it('should return false for empty signature', () => {
+      const result = validateSignature(testPayload, '', testSecret);
       expect(result).toBe(false);
     });
 
-    it("should return false for null/undefined signature", () => {
+    it('should return false for null/undefined signature', () => {
       expect(validateSignature(testPayload, null, testSecret)).toBe(false);
       expect(validateSignature(testPayload, undefined, testSecret)).toBe(false);
     });
 
-    it("should handle special characters in payload", () => {
+    it('should handle special characters in payload', () => {
       const specialPayload = '{"message":"Hello, 世界! 🌍","special":"<>&\\""}';
       const signature = computeSignature(specialPayload, testSecret);
 
@@ -548,9 +549,9 @@ describe("Crypto Utilities", () => {
       expect(result).toBe(true);
     });
 
-    it("should handle large payloads", () => {
+    it('should handle large payloads', () => {
       const largePayload = JSON.stringify({
-        data: Array(1000).fill({ key: "value", nested: { more: "data" } }),
+        data: Array(1000).fill({ key: 'value', nested: { more: 'data' } }),
       });
       const signature = computeSignature(largePayload, testSecret);
 
@@ -559,7 +560,7 @@ describe("Crypto Utilities", () => {
       expect(result).toBe(true);
     });
 
-    it("should be case-sensitive for signature comparison", () => {
+    it('should be case-sensitive for signature comparison', () => {
       const signature = computeSignature(testPayload, testSecret);
       // Uppercase the hex signature (after sha256= prefix)
       const uppercaseSignature = `sha256=${signature.slice(7).toUpperCase()}`;
@@ -576,7 +577,7 @@ describe("Crypto Utilities", () => {
       expect(result).toBe(false);
     });
 
-    it("should prevent timing attacks (uses constant-time comparison)", () => {
+    it('should prevent timing attacks (uses constant-time comparison)', () => {
       // This is more of a code review check than a test
       // We verify the function uses timingSafeEqual by testing that
       // it still works correctly (timing attack prevention can't be easily tested)
