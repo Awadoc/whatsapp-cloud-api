@@ -3,7 +3,7 @@
  */
 
 // Base classes
-export { Component, FormFieldComponent } from './base';
+export { Component, FormFieldComponent } from "./base";
 
 // Actions
 export {
@@ -12,24 +12,28 @@ export {
   CompleteAction,
   OpenUrlAction,
   type Action,
-} from './actions';
+} from "./actions";
 
 // Input components
-export { TextInput, TextArea, type TextInputType } from './inputs';
+export { TextInput, TextArea, type TextInputType } from "./inputs";
 
 // Selector components
-export { Dropdown, RadioButtonsGroup, CheckboxGroup } from './selectors';
+export { Dropdown, RadioButtonsGroup, CheckboxGroup } from "./selectors";
 
 // Picker components
-export { DatePicker } from './pickers';
+export { DatePicker } from "./pickers";
 
 // Display components
 export {
-  TextHeading, TextSubheading, TextBody, Image,
-} from './display';
+  TextHeading,
+  TextSubheading,
+  TextBody,
+  TextCaption,
+  Image,
+} from "./display";
 
 // Navigation components
-export { Footer, EmbeddedLink } from './navigation';
+export { Footer, EmbeddedLink } from "./navigation";
 
 // Container components
-export { Form, type FormComponent } from './containers';
+export { Form, type FormComponent } from "./containers";

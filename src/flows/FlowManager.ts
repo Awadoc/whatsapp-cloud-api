@@ -20,9 +20,9 @@
  * await bot.sendFlow(userPhone, id, 'Start', { body: 'Click to begin' });
  * ```
  */
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import * as fs from 'fs';
-import FormData from 'form-data';
+import axios, { AxiosInstance, AxiosError } from "axios";
+import * as fs from "fs";
+import FormData from "form-data";
 import type {
   FlowDetails,
   FlowField,
@@ -34,8 +34,8 @@ import type {
   FlowSuccessResult,
   FlowPreview,
   FlowManagerOptions,
-} from './FlowManager.types';
-import { DEFAULT_FLOW_FIELDS } from './FlowManager.types';
+} from "./FlowManager.types";
+import { DEFAULT_FLOW_FIELDS } from "./FlowManager.types";
 
 /**
  * Interface for objects that can be converted to Flow JSON
@@ -48,8 +48,12 @@ interface FlowJSONConvertible {
  * Check if an object has a toJSON method
  */
 function hasToJSON(obj: unknown): obj is FlowJSONConvertible {
-  return typeof obj === 'object' && obj !== null && 'toJSON' in obj
-    && typeof (obj as FlowJSONConvertible).toJSON === 'function';
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "toJSON" in obj &&
+    typeof (obj as FlowJSONConvertible).toJSON === "function"
+  );
 }
 
 /**
@@ -65,23 +69,44 @@ export function createFlowManager(
   accessToken: string,
   options?: FlowManagerOptions,
 ) {
-  const version = options?.version ?? 'v20.0';
+  const version = options?.version ?? "v20.0";
 
   const client: AxiosInstance = axios.create({
     baseURL: `https://graph.facebook.com/${version}`,
+    timeout: 60000,
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
+    // Force IPv4 to avoid EAI_AGAIN/ETIMEDOUT issues
+    httpAgent: new (require("http").Agent)({ family: 4 }),
+    httpsAgent: new (require("https").Agent)({ family: 4 }),
   });
 
   /**
    * Handle API errors consistently
    */
   const handleError = (error: unknown): never => {
-    if (error instanceof AxiosError && error.response?.data) {
-      throw error.response.data;
+    // Debug logging
+    if (axios.isAxiosError(error)) {
+      console.error("[FlowManager] API Request Failed:", {
+        message: error.message,
+        code: error.code,
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+        requestData: error.config?.data,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+
+      if (error.response?.data) {
+        throw error.response.data;
+      }
+    } else {
+      console.error("[FlowManager] Unknown Error:", error);
     }
+
     throw error;
   };
 
@@ -131,7 +156,7 @@ export function createFlowManager(
       try {
         const { data } = await client.get(`/${flowId}`, {
           params: {
-            fields: (fields ?? DEFAULT_FLOW_FIELDS).join(','),
+            fields: (fields ?? DEFAULT_FLOW_FIELDS).join(","),
           },
         });
         return data;
@@ -156,7 +181,7 @@ export function createFlowManager(
       try {
         const { data } = await client.get(`/${wabaId}/flows`, {
           params: {
-            fields: (fields ?? DEFAULT_FLOW_FIELDS).join(','),
+            fields: (fields ?? DEFAULT_FLOW_FIELDS).join(","),
           },
         });
         return data;
@@ -198,10 +223,10 @@ export function createFlowManager(
       try {
         let jsonString: string;
 
-        if (typeof flowJson === 'string') {
+        if (typeof flowJson === "string") {
           // Check if it's a file path
-          if (flowJson.endsWith('.json') && fs.existsSync(flowJson)) {
-            jsonString = fs.readFileSync(flowJson, 'utf-8');
+          if (flowJson.endsWith(".json") && fs.existsSync(flowJson)) {
+            jsonString = fs.readFileSync(flowJson, "utf-8");
           } else {
             // Assume it's a JSON string
             jsonString = flowJson;
@@ -215,12 +240,12 @@ export function createFlowManager(
         }
 
         const formData = new FormData();
-        formData.append('file', Buffer.from(jsonString), {
-          filename: 'flow.json',
-          contentType: 'application/json',
+        formData.append("file", Buffer.from(jsonString), {
+          filename: "flow.json",
+          contentType: "application/json",
         });
-        formData.append('name', 'flow.json');
-        formData.append('asset_type', 'FLOW_JSON');
+        formData.append("name", "flow.json");
+        formData.append("asset_type", "FLOW_JSON");
 
         const { data } = await client.post(`/${flowId}/assets`, formData, {
           headers: {
@@ -341,7 +366,7 @@ export function createFlowManager(
     async getPreview(flowId: string): Promise<FlowPreview> {
       try {
         const { data } = await client.get(`/${flowId}`, {
-          params: { fields: 'preview' },
+          params: { fields: "preview" },
         });
         return data.preview;
       } catch (error) {
@@ -370,9 +395,12 @@ export function createFlowManager(
      */
     async setBusinessPublicKey(publicKey: string): Promise<FlowSuccessResult> {
       try {
-        const { data } = await client.post(`/${wabaId}/whatsapp_business_encryption`, {
-          business_public_key: publicKey,
-        });
+        const { data } = await client.post(
+          `/${wabaId}/whatsapp_business_encryption`,
+          {
+            business_public_key: publicKey,
+          },
+        );
         return data;
       } catch (error) {
         return handleError(error);

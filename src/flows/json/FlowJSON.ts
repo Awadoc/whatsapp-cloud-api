@@ -31,13 +31,9 @@
  * await flowManager.updateJson(flowId, flow);
  * ```
  */
-import * as fs from 'fs';
-import type {
-  FlowVersion,
-  DataApiVersion,
-  FlowJSONSchema,
-} from './types';
-import type { Screen } from './Screen';
+import * as fs from "fs";
+import type { FlowVersion, DataApiVersion, FlowJSONSchema } from "./types";
+import { Screen } from "./Screen";
 
 /**
  * Main class for building WhatsApp Flow JSON definitions
@@ -56,7 +52,7 @@ export class FlowJSON {
    *
    * @param version - Flow JSON version (default: '3.0')
    */
-  constructor(version: FlowVersion = '3.0') {
+  constructor(version: FlowVersion = "3.0") {
     this._version = version;
   }
 
@@ -167,7 +163,7 @@ export class FlowJSON {
    * @param indent - Indentation spaces (default: 2)
    */
   saveToFile(filePath: string, indent: number = 2): void {
-    fs.writeFileSync(filePath, this.toString(indent), 'utf-8');
+    fs.writeFileSync(filePath, this.toString(indent), "utf-8");
   }
 
   /**
@@ -180,7 +176,8 @@ export class FlowJSON {
    * @returns FlowJSON instance
    */
   static fromJSON(json: FlowJSONSchema | string): FlowJSON {
-    const parsed: FlowJSONSchema = typeof json === 'string' ? JSON.parse(json) : json;
+    const parsed: FlowJSONSchema =
+      typeof json === "string" ? JSON.parse(json) : json;
     const flow = new FlowJSON(parsed.version);
 
     if (parsed.data_api_version) {
@@ -191,8 +188,16 @@ export class FlowJSON {
       flow.setRoutingModel(parsed.routing_model);
     }
 
-    // Note: Screens are not reconstructed as Screen objects
-    // This is intentional - use raw JSON if you need to modify existing flows
+    if (parsed.screens) {
+      parsed.screens.forEach((s: any) => {
+        const screen = new Screen(s.id);
+        if (s.title) screen.setTitle(s.title);
+        if (s.terminal) screen.setTerminal(s.terminal);
+        if (s.refresh_on_back) screen.setRefreshOnBack(s.refresh_on_back);
+        if (s.data) screen.setData(s.data);
+        flow.addScreen(screen);
+      });
+    }
 
     return flow;
   }
@@ -204,7 +209,7 @@ export class FlowJSON {
    * @returns FlowJSON instance
    */
   static fromFile(filePath: string): FlowJSON {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = fs.readFileSync(filePath, "utf-8");
     return FlowJSON.fromJSON(content);
   }
 }
