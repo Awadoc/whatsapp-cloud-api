@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 3.1.0
+
+### Added
+
+- **WhatsApp Flows Support**: New module `@awadoc/whatsapp-cloud-api/flows`
+  - Flow management (`createFlowManager`) - create, update, publish, deprecate, delete
+  - Type-safe Flow JSON builders (`FlowJSON`, `Screen`, `Layout`)
+  - Display components (`TextHeading`, `TextSubheading`, `TextBody`, `Image`, `EmbeddedLink`)
+  - Input components (`TextInput`, `TextArea`, `Dropdown`, `RadioButtonsGroup`, `CheckboxGroup`, `DatePicker`)
+  - Action builders (`NavigateAction`, `DataExchangeAction`, `CompleteAction`, `OpenUrlAction`)
+  - Encryption utilities for data exchange (`generateKeyPair`, `decryptRequest`, `encryptResponse`)
+  - Express/Next.js endpoint handlers for flow data exchange
+- **BSUID Support**: New `from_user_id` field on messages for WhatsApp's Business-Scoped User ID
+  - Future-proof identity handling as WhatsApp transitions away from phone number-based identity
+  - Automatic extraction from both message and contact data
+- **Debug Logger**: Set `DEBUG_WHATSAPP_CLOUD_API=true` to log incoming webhooks and outgoing requests
+- **Comprehensive Test Suite**: Added extensive unit tests for Flows module, crypto, and core functionality
+
+### Changed
+
+- Force IPv4 for Axios requests to improve connectivity reliability
+
+---
+
 ## 3.0.0
 
 ### Added

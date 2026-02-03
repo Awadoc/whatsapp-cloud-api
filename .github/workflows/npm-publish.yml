@@ -10,26 +10,22 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: production  # Optional but recommended
-    
+    environment: production # Optional but recommended
+
     # Required for OIDC authentication
     permissions:
       id-token: write
       contents: read
 
-    strategy:
-      matrix:
-        node-version: [20.x]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: https://registry.npmjs.org/
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
