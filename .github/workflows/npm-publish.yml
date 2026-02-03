@@ -39,6 +39,4 @@ jobs:
         run: npm run build
 
       - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: "" # Force clear legacy tokens to use OIDC instead
+        run: npm publish --provenance --access public
