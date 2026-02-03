@@ -126,3 +126,10 @@ Temporary Items
 .apdisk
 dist/
 demo/
+
+# Config files
+.eslintrc.js
+jest.config.js
+run_tests.js
+run_bsuid_tests.js
+playground/src/index.js

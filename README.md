@@ -2,7 +2,7 @@
 
 A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/) with full TypeScript support. Built to send and receive messages, handle webhooks via Express or Next.js, and scale cleanly in your apps.
 
-> **Forked from:** [tawn33y/whatsapp-cloud-api](https://github.com/tawn33y/whatsapp-cloud-api) *(Archived)*\
+> **Forked from:** [tawn33y/whatsapp-cloud-api](https://github.com/tawn33y/whatsapp-cloud-api) _(Archived)_\
 > Maintained with extended support, modular routing, and Next.js support.
 
 ---
@@ -14,6 +14,7 @@ npm install @awadoc/whatsapp-cloud-api
 ```
 
 **For Next.js support (optional):**
+
 ```bash
 npm install next
 ```
@@ -23,9 +24,9 @@ npm install next
 ## 📦 Usage with Express
 
 ```ts
-import express from 'express';
-import { createBot } from '@awadoc/whatsapp-cloud-api';
-import { getExpressRoute } from '@awadoc/whatsapp-cloud-api/express';
+import express from "express";
+import { createBot } from "@awadoc/whatsapp-cloud-api";
+import { getExpressRoute } from "@awadoc/whatsapp-cloud-api/express";
 
 const phoneId = process.env.PHONE_ID!;
 const token = process.env.ACCESS_TOKEN!;
@@ -35,17 +36,17 @@ const app = express();
 const bot = createBot(phoneId, token);
 
 // Register WhatsApp webhook route
-app.use('/webhook', getExpressRoute(phoneId, { webhookVerifyToken }));
+app.use("/webhook", getExpressRoute(phoneId, { webhookVerifyToken }));
 
 // Handle incoming messages
-bot.on('message', async (msg) => {
+bot.on("message", async (msg) => {
   console.log(msg);
-  if (msg.type === 'text') {
-    await bot.sendText(msg.from, 'Got your text!');
+  if (msg.type === "text") {
+    await bot.sendText(msg.from, "Got your text!");
   }
 });
 
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
 ```
 
 ---
@@ -56,8 +57,8 @@ app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 
 ```ts
 // app/api/whatsapp/webhook/route.ts
-import { createBot } from '@awadoc/whatsapp-cloud-api';
-import { getNextAppRouteHandlers } from '@awadoc/whatsapp-cloud-api/next';
+import { createBot } from "@awadoc/whatsapp-cloud-api";
+import { getNextAppRouteHandlers } from "@awadoc/whatsapp-cloud-api/next";
 
 const phoneId = process.env.PHONE_ID!;
 const bot = createBot(phoneId, process.env.ACCESS_TOKEN!);
@@ -66,15 +67,15 @@ export const { GET, POST } = getNextAppRouteHandlers(phoneId, {
   webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN,
 });
 
-bot.on('message', (msg) => console.log(msg));
+bot.on("message", (msg) => console.log(msg));
 ```
 
 ### Pages Router
 
 ```ts
 // pages/api/whatsapp/webhook.ts
-import { createBot } from '@awadoc/whatsapp-cloud-api';
-import { getNextPagesApiHandler } from '@awadoc/whatsapp-cloud-api/next';
+import { createBot } from "@awadoc/whatsapp-cloud-api";
+import { getNextPagesApiHandler } from "@awadoc/whatsapp-cloud-api/next";
 
 const phoneId = process.env.PHONE_ID!;
 const bot = createBot(phoneId, process.env.ACCESS_TOKEN!);
@@ -83,7 +84,7 @@ export default getNextPagesApiHandler(phoneId, {
   webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN,
 });
 
-bot.on('message', (msg) => console.log(msg));
+bot.on("message", (msg) => console.log(msg));
 ```
 
 ---
@@ -94,6 +95,56 @@ bot.on('message', (msg) => console.log(msg));
 - ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router).
 - ✅ Full TypeScript typing & dev experience.
 - ✅ Custom routing support for integration with existing apps.
+- ✅ **WhatsApp Flows** - Full support for creating, managing, and handling interactive flows.
+
+---
+
+## 📱 WhatsApp Flows
+
+This library provides comprehensive support for WhatsApp Flows - interactive, form-based experiences within WhatsApp.
+
+### Quick Example
+
+```ts
+import { createBot } from "@awadoc/whatsapp-cloud-api";
+import { createFlowManager, FlowJSON, Screen, TextInput, Footer, CompleteAction } from "@awadoc/whatsapp-cloud-api/flows";
+
+const bot = createBot(phoneId, accessToken);
+const flows = createFlowManager(wabaId, accessToken);
+
+// Create and configure a flow
+const { id: flowId } = await flows.create({ name: "Feedback Form" });
+
+const flowJson = new FlowJSON()
+  .addScreen(
+    new Screen("FEEDBACK")
+      .setTitle("Share Feedback")
+      .addComponent(new TextInput("feedback", "Your feedback"))
+      .addComponent(new Footer("Submit", new CompleteAction()))
+  );
+
+await flows.updateJson(flowId, flowJson);
+await flows.publish(flowId);
+
+// Send the flow to a user
+await bot.sendFlow(userPhone, flowId, "Give Feedback", {
+  body: "We value your opinion!",
+});
+
+// Handle flow completion
+bot.on("nfm_reply", (msg) => {
+  console.log("Feedback received:", msg.data.response);
+});
+```
+
+### Flows Documentation
+
+- **[Overview](./docs/flows/README.md)** - Introduction to WhatsApp Flows
+- **[Sending Flows](./docs/flows/sending-flows.md)** - Send flow messages to users
+- **[Flow Management](./docs/flows/flow-management.md)** - Create, update, publish flows via API
+- **[Flow JSON Builder](./docs/flows/flow-json-builder.md)** - Type-safe flow building
+- **[Data Exchange Endpoint](./docs/flows/data-exchange-endpoint.md)** - Handle dynamic flow data
+- **[Handling Responses](./docs/flows/handling-responses.md)** - Process flow completions
 
 ---
 
@@ -101,13 +152,15 @@ bot.on('message', (msg) => console.log(msg));
 
 ```ts
 // Send an image
-await bot.sendImage(to, 'https://example.com/pic.jpg', { caption: 'Look at this!' });
+await bot.sendImage(to, "https://example.com/pic.jpg", {
+  caption: "Look at this!",
+});
 
 // Send a location
-await bot.sendLocation(to, 6.5244, 3.3792, { name: 'Lagos, Nigeria' });
+await bot.sendLocation(to, 6.5244, 3.3792, { name: "Lagos, Nigeria" });
 
 // Send a template message
-await bot.sendTemplate(to, 'hello_world', 'en_US');
+await bot.sendTemplate(to, "hello_world", "en_US");
 ```
 
 ---
@@ -117,7 +170,10 @@ await bot.sendTemplate(to, 'hello_world', 'en_US');
 You can easily change the webhook route or plug into your existing middleware:
 
 ```ts
-app.use('/custom-whatsapp-hook', bot.getExpressRoute({ webhookVerifyToken: 'secret_token' }));
+app.use(
+  "/custom-whatsapp-hook",
+  bot.getExpressRoute({ webhookVerifyToken: "secret_token" }),
+);
 ```
 
 ---
@@ -134,6 +190,32 @@ TO=""
 WEBHOOK_VERIFY_TOKEN=""
 WEBHOOK_PATH=""
 ```
+
+---
+
+## 🧪 Testing & Development
+
+### Running Tests
+
+To run the test suite, use the following command:
+
+```bash
+npm test
+```
+
+### Running the Demo Server
+
+A demo server is included to help you test the integration locally.
+
+1. Create a `.env` file from the template:
+   ```bash
+   cp .env.template .env
+   ```
+2. Fill in your WhatsApp Cloud API credentials in `.env`.
+3. Start the demo server:
+   ```bash
+   npm run start:demo
+   ```
 
 ---
 
@@ -157,4 +239,3 @@ Forks, issues, and PRs are welcome.
 ## 🧼 License
 
 MIT
-

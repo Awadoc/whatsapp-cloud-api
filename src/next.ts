@@ -40,6 +40,8 @@ import PubSub from 'pubsub-js';
 import { FreeFormObject } from './utils/misc';
 import { PubSubEvent, PubSubEvents } from './utils/pubSub';
 import { Message } from './createBot.types';
+import { WebhookContact } from './messages.types';
+import { DebugLogger } from './utils/logger';
 
 // ============================================================================
 // Types
@@ -65,6 +67,7 @@ export type NextPagesHandler = (
 
 interface WebhookMessagePayload {
   from: string;
+  from_user_id?: string;
   id: string;
   timestamp: string;
   type: string;
@@ -94,7 +97,11 @@ interface WebhookBody {
     changes?: Array<{
       value?: {
         metadata?: { phone_number_id?: string };
-        contacts?: Array<{ profile?: { name?: string } }>;
+        contacts?: Array<{
+          profile?: { name?: string };
+          wa_id?: string;
+          user_id?: string;
+        }>;
         messages?: WebhookMessagePayload[];
         statuses?: unknown[];
       };
@@ -159,11 +166,31 @@ function processWebhookBody(
     case 'interactive':
       if (rest.interactive) {
         event = rest.interactive.type as PubSubEvent;
-        data = {
-          ...(rest.interactive.list_reply
-            || rest.interactive.button_reply
-            || rest.interactive.nfm_reply),
-        } as FreeFormObject<PubSubEvent>;
+        if (rest.interactive.nfm_reply) {
+          // Parse flow response JSON for nfm_reply
+          const nfmReply = rest.interactive.nfm_reply as {
+            response_json?: string;
+            body?: string;
+            name?: string;
+          };
+          let parsedResponse: Record<string, unknown> | undefined;
+          if (nfmReply.response_json) {
+            try {
+              parsedResponse = JSON.parse(nfmReply.response_json);
+            } catch {
+              // If parsing fails, leave response undefined
+            }
+          }
+          data = {
+            ...nfmReply,
+            response: parsedResponse,
+          } as FreeFormObject<'nfm_reply'>;
+        } else {
+          data = {
+            ...(rest.interactive.list_reply
+              || rest.interactive.button_reply),
+          } as FreeFormObject<PubSubEvent>;
+        }
       }
       break;
 
@@ -191,19 +218,41 @@ function processWebhookBody(
   }
 
   const isSystemMessage = type === 'system';
-  const name = isSystemMessage
-    ? undefined
-    : body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
+  const contactName = body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
+  const contacts = body.entry[0].changes[0].value?.contacts;
+  // Types need update in WebhookBody definition above first?
+  // Wait, WebhookBody in next.ts is defined locally around line 96. I need to update that too.
+
+  let bsuid: string | undefined;
+  // We need to cast messageData to access from_user_id if not keyof WebhookMessagePayload
+  // Let's update WebhookMessagePayload first.
+
+  // Assuming WebhookMessagePayload is updated in a separate step or I cast here.
+  // @ts-ignore
+  bsuid = messageData.from_user_id;
+
+  if (!bsuid && contacts) {
+    // @ts-ignore
+    const contact = contacts.find(
+      (c) => c.wa_id === from || (c.user_id && from === ''),
+    );
+    if (contact) {
+      // @ts-ignore
+      bsuid = contact.user_id;
+    }
+  }
 
   if (event && data) {
-    const payload: Message = {
+    const payload = {
       from,
-      name,
+      from_user_id: bsuid,
+      name: isSystemMessage ? undefined : contactName,
       id,
       timestamp,
       type: event,
       data: context ? { ...data, context } : data,
-    };
+      contact: contacts?.[0] as unknown as WebhookContact,
+    } as Message;
 
     return { event, payload };
   }
@@ -211,7 +260,11 @@ function processWebhookBody(
   return null;
 }
 
-function publishWebhook(fromPhoneNumberId: string, event: PubSubEvent, payload: Message): void {
+function publishWebhook(
+  fromPhoneNumberId: string,
+  event: PubSubEvent,
+  payload: Message,
+): void {
   [
     `bot-${fromPhoneNumberId}-message`,
     `bot-${fromPhoneNumberId}-${event}`,
@@ -235,7 +288,9 @@ export const getNextAppRouteHandlers = (
 ): NextAppRouteHandlers => ({
   GET: (request: NextRequest): NextResponse => {
     if (!options?.webhookVerifyToken) {
-      return new NextResponse('Webhook verification not configured', { status: 500 });
+      return new NextResponse('Webhook verification not configured', {
+        status: 500,
+      });
     }
 
     const url = new URL(request.url);
@@ -261,7 +316,8 @@ export const getNextAppRouteHandlers = (
 
   POST: async (request: NextRequest): Promise<NextResponse> => {
     try {
-      const body = await request.json() as WebhookBody;
+      const body = (await request.json()) as WebhookBody;
+      DebugLogger.logIncomingWebhook(body);
 
       // Check for status updates (acknowledged but not processed)
       if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
@@ -296,71 +352,74 @@ export const getNextAppRouteHandlers = (
  * @param options - Server configuration options
  * @returns Handler function for pages/api route
  */
-export const getNextPagesApiHandler = (
+export function getNextPagesApiHandler(
   fromPhoneNumberId: string,
   options?: NextServerOptions,
-): NextPagesHandler => async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
-  // Handle GET request (webhook verification)
-  if (req.method === 'GET') {
-    if (!options?.webhookVerifyToken) {
-      res.status(500).send('Webhook verification not configured');
-      return;
-    }
+): NextPagesHandler {
+  // eslint-disable-next-line
+  return async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
+    // Handle GET request (webhook verification)
+    if (req.method === 'GET') {
+      if (!options?.webhookVerifyToken) {
+        res.status(500).send('Webhook verification not configured');
+        return;
+      }
 
-    const mode = req.query['hub.mode'] as string | undefined;
-    const token = req.query['hub.verify_token'] as string | undefined;
-    const challenge = req.query['hub.challenge'] as string | undefined;
+      const mode = req.query['hub.mode'] as string | undefined;
+      const token = req.query['hub.verify_token'] as string | undefined;
+      const challenge = req.query['hub.challenge'] as string | undefined;
 
-    if (!mode || !token || !challenge) {
+      if (!mode || !token || !challenge) {
+        res.status(403).send('Forbidden');
+        return;
+      }
+
+      if (mode === 'subscribe' && token === options.webhookVerifyToken) {
+        // eslint-disable-next-line no-console
+        console.log('✔️ Webhook verified');
+        res.setHeader('content-type', 'text/plain');
+        res.status(200).send(challenge);
+        return;
+      }
+
       res.status(403).send('Forbidden');
       return;
     }
 
-    if (mode === 'subscribe' && token === options.webhookVerifyToken) {
-      // eslint-disable-next-line no-console
-      console.log('✔️ Webhook verified');
-      res.setHeader('content-type', 'text/plain');
-      res.status(200).send(challenge);
+    // Handle POST request (incoming messages)
+    if (req.method === 'POST') {
+      try {
+        const body = req.body as WebhookBody;
+        DebugLogger.logIncomingWebhook(body);
+
+        // Check for status updates (acknowledged but not processed)
+        if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
+          res.status(202).end();
+          return;
+        }
+
+        const result = processWebhookBody(body, fromPhoneNumberId);
+
+        if (!result) {
+          res.status(400).send('Bad Request');
+          return;
+        }
+
+        publishWebhook(fromPhoneNumberId, result.event, result.payload);
+
+        res.status(200).end();
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error processing webhook:', error);
+        res.status(500).send('Internal Server Error');
+      }
       return;
     }
 
-    res.status(403).send('Forbidden');
-    return;
-  }
-
-  // Handle POST request (incoming messages)
-  if (req.method === 'POST') {
-    try {
-      const body = req.body as WebhookBody;
-
-      // Check for status updates (acknowledged but not processed)
-      if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
-        res.status(202).end();
-        return;
-      }
-
-      const result = processWebhookBody(body, fromPhoneNumberId);
-
-      if (!result) {
-        res.status(400).send('Bad Request');
-        return;
-      }
-
-      publishWebhook(fromPhoneNumberId, result.event, result.payload);
-
-      res.status(200).end();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error processing webhook:', error);
-      res.status(500).send('Internal Server Error');
-    }
-    return;
-  }
-
-  // Method not allowed
-  res.status(405).send('Method Not Allowed');
-};
-
+    // Method not allowed
+    res.status(405).send('Method Not Allowed');
+  };
+}
 // Re-export Next.js types for convenience
 export type { NextApiRequest, NextApiResponse } from 'next';
 export type { NextRequest } from 'next/server';

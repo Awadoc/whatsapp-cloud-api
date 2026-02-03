@@ -7,10 +7,6 @@
     "sourceMap": true,
     "declaration": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/**/*", "tests/**/*", "server_demo.ts"],
+  "exclude": ["node_modules"]
 }

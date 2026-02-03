@@ -18,9 +18,7 @@ export const PubSubEvents = {
   reaction: 'reaction',
   order: 'order',
   system: 'system',
-} as const satisfies Record<
-keyof FreeFormObjectMap,
-keyof FreeFormObjectMap
->;
+  status: 'status',
+} as const satisfies Record<keyof FreeFormObjectMap, keyof FreeFormObjectMap>;
 
 export type PubSubEvent = keyof typeof PubSubEvents;

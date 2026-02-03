@@ -15,6 +15,8 @@ import {
   TemplateMessage,
   TextMessage,
   MarkAsRead,
+  FlowMessage,
+  FlowIdentifier,
 } from './messages.types';
 import {
   getMediaAxiosClient,
@@ -51,6 +53,15 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
     caption: options?.caption,
     filename: options?.filename,
   });
+
+  const getFlowIdentifier = (
+    flowIdOrName: string | FlowIdentifier,
+  ): FlowIdentifier => {
+    if (typeof flowIdOrName === 'string') {
+      return { flow_id: flowIdOrName };
+    }
+    return flowIdOrName;
+  };
 
   return {
     on: (event, cb) => {
@@ -216,6 +227,36 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
           parameters: {
             display_text,
             url,
+          },
+        },
+      },
+    }),
+    sendFlow: (to, flowIdOrName, ctaText, options) => sendRequest<FlowMessage>({
+      ...payloadBase,
+      to,
+      type: 'interactive',
+      context: options?.context,
+      interactive: {
+        body: {
+          text: options.body,
+        },
+        ...(options?.footer
+          ? {
+            footer: { text: options.footer },
+          }
+          : {}),
+        header: options?.header,
+        type: 'flow',
+        action: {
+          name: 'flow',
+          parameters: {
+            flow_message_version: '3',
+            ...getFlowIdentifier(flowIdOrName),
+            flow_cta: ctaText,
+            mode: options?.mode,
+            flow_token: options?.flowToken,
+            flow_action: options?.flowAction,
+            flow_action_payload: options?.flowActionPayload,
           },
         },
       },
