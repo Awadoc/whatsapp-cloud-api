@@ -1,18 +1,5 @@
 # CHANGELOG
 
-## 3.1.2
-
-### Fixed
-
-- Restore `registry-url` configuration while explicitly suppressing legacy token variables to ensure correct OIDC discovery for scoped packages.
-- Remove workflow environment constraint to improve compatibility with repository-level Trusted Publisher configurations.
-
-## 3.1.1
-
-### Fixed
-
-- Force OIDC authentication in GitHub Actions by clearing legacy `NODE_AUTH_TOKEN` environment variables.
-
 ## 3.1.0
 
 ### Added
