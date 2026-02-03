@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.1.1
+
+### Fixed
+
+- Force OIDC authentication in GitHub Actions by clearing legacy `NODE_AUTH_TOKEN` environment variables.
+
 ## 3.1.0
 
 ### Added
