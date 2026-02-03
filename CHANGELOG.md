@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.1.2
+
+### Fixed
+
+- Restore `registry-url` configuration while explicitly suppressing legacy token variables to ensure correct OIDC discovery for scoped packages.
+- Remove workflow environment constraint to improve compatibility with repository-level Trusted Publisher configurations.
+
 ## 3.1.1
 
 ### Fixed

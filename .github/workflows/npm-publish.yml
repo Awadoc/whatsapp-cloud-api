@@ -10,7 +10,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: production # Optional but recommended
 
     # Required for OIDC authentication
     permissions:
@@ -25,6 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
@@ -41,4 +41,4 @@ jobs:
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
-          NODE_AUTH_TOKEN: "" # Force clear any inherited secrets to use OIDC instead
+          NODE_AUTH_TOKEN: "" # Force clear legacy tokens to use OIDC instead
