@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 3.1.3
+
+### Fixed
+
+- Restored missing core type exports from the main entry point (`@awadoc/whatsapp-cloud-api`)
+
+---
+
 ## 3.1.0
 
 ### Added
