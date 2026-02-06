@@ -2,50 +2,50 @@
   "name": "@awadoc/whatsapp-cloud-api",
   "version": "3.1.1",
   "description": "Node.js library for creating bots and sending/receiving messages using the Whatsapp Cloud API",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./express": {
-      "types": "./dist/express.d.ts",
-      "default": "./dist/express.js"
+      "types": "./dist/src/express.d.ts",
+      "default": "./dist/src/express.js"
     },
     "./next": {
-      "types": "./dist/next.d.ts",
-      "default": "./dist/next.js"
+      "types": "./dist/src/next.d.ts",
+      "default": "./dist/src/next.js"
     },
     "./flows": {
-      "types": "./dist/flows/index.d.ts",
-      "default": "./dist/flows/index.js"
+      "types": "./dist/src/flows/index.d.ts",
+      "default": "./dist/src/flows/index.js"
     },
     "./flows/endpoint/express": {
-      "types": "./dist/flows/endpoint/express.d.ts",
-      "default": "./dist/flows/endpoint/express.js"
+      "types": "./dist/src/flows/endpoint/express.d.ts",
+      "default": "./dist/src/flows/endpoint/express.js"
     },
     "./flows/endpoint/next": {
-      "types": "./dist/flows/endpoint/next.d.ts",
-      "default": "./dist/flows/endpoint/next.js"
+      "types": "./dist/src/flows/endpoint/next.d.ts",
+      "default": "./dist/src/flows/endpoint/next.js"
     }
   },
   "typesVersions": {
     "*": {
       "express": [
-        "dist/express.d.ts"
+        "dist/src/express.d.ts"
       ],
       "next": [
-        "dist/next.d.ts"
+        "dist/src/next.d.ts"
       ],
       "flows": [
-        "dist/flows/index.d.ts"
+        "dist/src/flows/index.d.ts"
       ],
       "flows/endpoint/express": [
-        "dist/flows/endpoint/express.d.ts"
+        "dist/src/flows/endpoint/express.d.ts"
       ],
       "flows/endpoint/next": [
-        "dist/flows/endpoint/next.d.ts"
+        "dist/src/flows/endpoint/next.d.ts"
       ]
     }
   },
