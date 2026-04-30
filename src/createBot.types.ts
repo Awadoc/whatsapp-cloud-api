@@ -16,18 +16,21 @@ import {
 } from './sendRequestHelper.types';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
+import { RecipientTarget } from './recipient';
 
 export interface GenericMessage<
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
   from: string;
   from_user_id?: string;
+  from_parent_user_id?: string;
   name: string | undefined;
   id: string;
   timestamp: string;
   type: K;
   data: FreeFormObject<K>;
   contact?: WebhookContact;
+  replyTarget: RecipientTarget;
 }
 
 export type AllPossibleMessages = {
@@ -43,6 +46,8 @@ export type SpecificEventCallback<K extends PubSubEvent> = (
 
 // 👇 Base option for all send methods
 export type BaseOptionType = {
+  /** Recipient BSUID. Use this if you don't have the user's phone number. */
+  recipient?: string;
   context?: WhatsappMessageObject['context'];
 };
 
@@ -70,7 +75,7 @@ export interface Bot {
   unsubscribe: (token: string) => string | boolean;
 
   sendText: (
-    to: string,
+    to: string | RecipientTarget,
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
@@ -78,7 +83,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendMessage: (
-    to: string,
+    to: string | RecipientTarget,
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
@@ -86,7 +91,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendImage: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -94,7 +99,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendDocument: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -103,13 +108,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendAudio: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendVideo: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -117,13 +122,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendSticker: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendLocation: (
-    to: string,
+    to: string | RecipientTarget,
     latitude: number,
     longitude: number,
     options?: BaseOptionType & {
@@ -133,7 +138,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendTemplate: (
-    to: string,
+    to: string | RecipientTarget,
     name: string,
     languageCode: string,
     components?: TemplateComponent[],
@@ -141,13 +146,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendContacts: (
-    to: string,
+    to: string | RecipientTarget,
     contacts: Contact[],
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendReplyButtons: (
-    to: string,
+    to: string | RecipientTarget,
     bodyText: string,
     buttons: {
       [id: string]: string | number;
@@ -159,7 +164,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendList: (
-    to: string,
+    to: string | RecipientTarget,
     buttonName: string,
     bodyText: string,
     sections: {
@@ -176,7 +181,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendCTAUrl: (
-    to: string,
+    to: string | RecipientTarget,
     bodyText: string,
     display_text: string,
     url: `http://${string}` | `https://${string}`,
@@ -189,7 +194,7 @@ export interface Bot {
   /**
    * Send a WhatsApp Flow message to a user.
    *
-   * @param to - Recipient phone number
+   * @param to - Recipient phone number or typed target
    * @param flowIdOrName - Flow ID string, or object with flow_id or flow_name
    * @param ctaText - Call-to-action button text (max 20 chars, no emoji)
    * @param options - Flow message options including body text
@@ -213,7 +218,7 @@ export interface Bot {
    * ```
    */
   sendFlow: (
-    to: string,
+    to: string | RecipientTarget,
     flowIdOrName: string | FlowIdentifier,
     ctaText: string,
     options: SendFlowOptions,

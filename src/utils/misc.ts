@@ -128,6 +128,13 @@ export interface FreeFormObjectMap {
     recipient_user_id?: string;
     errors?: any[];
   };
+  user_id_update: {
+    old_user_id: string;
+    new_user_id: string;
+  };
+  business_username_update: {
+    user_id: string;
+  };
 }
 
 // Create a conditional type for better constraint handling

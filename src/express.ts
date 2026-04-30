@@ -23,6 +23,7 @@ import { FreeFormObject } from './utils/misc';
 import { PubSubEvent, PubSubEvents } from './utils/pubSub';
 import { Message } from './createBot.types';
 import { WebhookContact } from './messages.types';
+import { Phone, UserId } from './recipient';
 import { DebugLogger } from './utils/logger';
 
 // ============================================================================
@@ -98,13 +99,15 @@ export const getExpressRoute = (
           value?: {
             metadata?: { phone_number_id?: string };
             contacts?: Array<{
-              profile?: { name?: string };
+              profile?: { name?: string; username?: string };
               wa_id?: string;
               user_id?: string;
+              parent_user_id?: string;
             }>;
             messages?: Array<{
               from: string;
               from_user_id?: string;
+              from_parent_user_id?: string;
               id: string;
               timestamp: string;
               type: string;
@@ -129,15 +132,51 @@ export const getExpressRoute = (
             }>;
             statuses?: unknown[];
           };
+          field?: string;
         }>;
       }>;
     };
 
-    if (
-      !typedBody.object
-      || !typedBody.entry?.[0]?.changes?.[0]?.value
-      || !typedBody.entry?.[0]?.changes?.[0]?.value?.messages?.length
-    ) {
+    if (!typedBody.object || !typedBody.entry?.[0]?.changes?.[0]?.value) {
+      res.sendStatus(400);
+      return;
+    }
+
+    // New BSUID events
+    const field = typedBody.entry?.[0]?.changes?.[0]?.field;
+    const value = typedBody.entry?.[0]?.changes?.[0]?.value;
+
+    if (field === 'user_id_update' || field === 'business_username_update') {
+      const phoneNumberId = value?.metadata?.phone_number_id;
+
+      // Only process if it matches this bot's phone number
+      if (phoneNumberId === fromPhoneNumberId) {
+        const eventType = field;
+        const payload = {
+          from_user_id: (value as any).user_id || (value as any).new_user_id,
+          type: eventType,
+          data: field === 'user_id_update'
+            ? {
+              old_user_id: (value as any).old_user_id,
+              new_user_id: (value as any).new_user_id,
+            }
+            : {
+              user_id: (value as any).user_id,
+            },
+          timestamp: Math.floor(Date.now() / 1000).toString(),
+        } as Message;
+
+        [
+          `bot-${fromPhoneNumberId}-message`,
+          `bot-${fromPhoneNumberId}-${eventType}`,
+        ].forEach((e) => PubSub.publish(e, payload));
+      }
+
+      res.sendStatus(200);
+      return;
+    }
+
+    if (!typedBody.entry?.[0]?.changes?.[0]?.value?.messages?.length) {
       res.sendStatus(400);
       return;
     }
@@ -155,7 +194,10 @@ export const getExpressRoute = (
     }
 
     const {
-      from, id, timestamp, type, context, ...rest
+      from, id, timestamp, type, context,
+      from_user_id: fromUserId,
+      from_parent_user_id: fromParentUserId,
+      ...rest
     } = messageData;
     const phoneNumberId = typedBody.entry[0].changes[0].value?.metadata?.phone_number_id;
 
@@ -243,13 +285,8 @@ export const getExpressRoute = (
     const contactName = typedBody.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
     const contacts = typedBody.entry[0].changes[0].value?.contacts;
 
-    // Attempt to find the user_id (BSUID)
-    // 1. Check message.from_user_id (new field)
-    // 2. Check contacts for matching wa_id or user_id
-    // Note: messageData is already extracted above as `const { from ... } = messageData`
-    // We need to access the full messageData object again or rely on `rest` + extracted fields.
-
-    let bsuid = messageData.from_user_id;
+    let bsuid = fromUserId;
+    let parentBsuid = fromParentUserId;
 
     if (!bsuid && contacts) {
       const contact = contacts.find(
@@ -257,6 +294,7 @@ export const getExpressRoute = (
       );
       if (contact) {
         bsuid = contact.user_id;
+        parentBsuid = contact.parent_user_id;
       }
     }
 
@@ -264,6 +302,8 @@ export const getExpressRoute = (
       const payload = {
         from,
         from_user_id: bsuid,
+        from_parent_user_id: parentBsuid,
+        replyTarget: from ? Phone(from) : UserId(bsuid!),
         name: isSystemMessage ? undefined : contactName,
         id,
         timestamp,

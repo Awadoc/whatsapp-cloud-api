@@ -98,6 +98,7 @@ const transformResponse = <K extends keyof ApiPathResponseMap>(
       messageId: result?.messages?.[0]?.id,
       phoneNumber: result?.contacts?.[0]?.input,
       whatsappId: result?.contacts?.[0]?.wa_id,
+      userId: result?.contacts?.[0]?.user_id,
       success: result?.success,
     };
   }

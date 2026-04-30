@@ -23,10 +23,12 @@ import {
   getMessagesAxiosClient,
   sendRequestHelper,
 } from './sendRequestHelper';
+import { resolveRecipient } from './recipient';
 
 interface PaylodBase {
   messaging_product: 'whatsapp';
   recipient_type: 'individual';
+  recipient?: string;
 }
 
 const payloadBase: PaylodBase = {
@@ -73,194 +75,253 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
     },
     unsubscribe: (token) => PubSub.unsubscribe(token),
 
-    sendText: (to, text, options) => sendRequest<TextMessage>({
-      ...payloadBase,
-      to,
-      type: 'text',
-      text: {
-        body: text,
-        preview_url: options?.preview_url,
-      },
-      context: options?.context,
-    }),
-    sendMessage(to, text, options) {
-      return this.sendText(to, text, options);
+    sendText: (to, text, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<TextMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'text',
+        text: {
+          preview_url: options?.preview_url,
+          body: text,
+        },
+        context: options?.context,
+      });
     },
-    sendImage: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
-      ...payloadBase,
-      to,
-      type: 'image',
-      image: getMediaPayload(urlOrObjectId, options),
-      context: options?.context,
-    }),
-    sendDocument: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
-      ...payloadBase,
-      to,
-      type: 'document',
-      document: getMediaPayload(urlOrObjectId, options),
-      context: options?.context,
-    }),
-    sendAudio: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
-      ...payloadBase,
-      to,
-      type: 'audio',
-      audio: getMediaPayload(urlOrObjectId),
-      context: options?.context,
-    }),
-    sendVideo: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
-      ...payloadBase,
-      to,
-      type: 'video',
-      video: getMediaPayload(urlOrObjectId, options),
 
-      context: options?.context,
-    }),
-    sendSticker: (to, urlOrObjectId, options) => sendRequest<MediaMessage>({
-      ...payloadBase,
-      to,
-      type: 'sticker',
-      sticker: getMediaPayload(urlOrObjectId),
-      context: options?.context,
-    }),
-    sendLocation: (to, latitude, longitude, options) => sendRequest<LocationMessage>({
-      ...payloadBase,
-      to,
-      type: 'location',
-      location: {
-        latitude,
-        longitude,
-        name: options?.name,
-        address: options?.address,
-      },
-      context: options?.context,
-    }),
-    sendTemplate: (to, name, languageCode, components, options) => sendRequest<TemplateMessage>({
-      ...payloadBase,
-      to,
-      type: 'template',
-      template: {
-        name,
-        language: {
-          code: languageCode,
+    sendMessage: (to, text, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<TextMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'text',
+        text: {
+          preview_url: options?.preview_url,
+          body: text,
         },
-        components,
-      },
-      context: options?.context,
-    }),
-    sendContacts: (to, contacts, options) => sendRequest<ContactMessage>({
-      ...payloadBase,
-      to,
-      type: 'contacts',
-      contacts,
-      context: options?.context,
-    }),
-    sendReplyButtons: (to, bodyText, buttons, options) => sendRequest<InteractiveMessage>({
-      ...payloadBase,
-      to,
-      type: 'interactive',
-      context: options?.context,
-      interactive: {
-        body: {
-          text: bodyText,
+        context: options?.context,
+      });
+    },
+
+    sendImage: (to, urlOrObjectId, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<MediaMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'image',
+        image: getMediaPayload(urlOrObjectId, options),
+        context: options?.context,
+      });
+    },
+
+    sendDocument: (to, urlOrObjectId, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<MediaMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'document',
+        document: getMediaPayload(urlOrObjectId, options),
+        context: options?.context,
+      });
+    },
+
+    sendAudio: (to, urlOrObjectId, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<MediaMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'audio',
+        audio: getMediaPayload(urlOrObjectId),
+        context: options?.context,
+      });
+    },
+
+    sendVideo: (to, urlOrObjectId, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<MediaMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'video',
+        video: getMediaPayload(urlOrObjectId, options),
+        context: options?.context,
+      });
+    },
+
+    sendSticker: (to, urlOrObjectId, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<MediaMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'sticker',
+        sticker: getMediaPayload(urlOrObjectId),
+        context: options?.context,
+      });
+    },
+
+    sendLocation: (to, latitude, longitude, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<LocationMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'location',
+        location: {
+          latitude,
+          longitude,
+          name: options?.name,
+          address: options?.address,
         },
-        ...(options?.footerText
-          ? {
-            footer: { text: options?.footerText },
-          }
-          : {}),
-        header: options?.header,
-        type: 'button',
-        action: {
-          buttons: Object.entries(buttons).map(([key, value]) => ({
-            type: 'reply',
-            reply: {
-              title: value,
-              id: key,
+        context: options?.context,
+      });
+    },
+
+    sendTemplate: (to, name, languageCode, components, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<TemplateMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'template',
+        template: {
+          name,
+          language: { code: languageCode },
+          components,
+        },
+        context: options?.context,
+      });
+    },
+
+    sendContacts: (to, contacts, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<ContactMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'contacts',
+        contacts,
+        context: options?.context,
+      });
+    },
+
+    sendReplyButtons: (to, bodyText, buttons, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<InteractiveMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'interactive',
+        interactive: {
+          body: { text: bodyText },
+          ...(options?.footerText
+            ? { footer: { text: options.footerText } }
+            : {}),
+          header: options?.header,
+          type: 'button',
+          action: {
+            buttons: Object.keys(buttons).map((id) => ({
+              type: 'reply',
+              reply: { id, title: buttons[id] },
+            })),
+          },
+        },
+        context: options?.context,
+      });
+    },
+
+    sendList: (to, buttonName, bodyText, sections, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<InteractiveMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'interactive',
+        interactive: {
+          body: { text: bodyText },
+          ...(options?.footerText
+            ? { footer: { text: options.footerText } }
+            : {}),
+          header: options?.header,
+          type: 'list',
+          action: {
+            button: buttonName,
+            sections: Object.keys(sections).map((title) => ({
+              title,
+              rows: sections[title].map((row) => ({
+                id: row.id,
+                title: row.title,
+                description: row.description,
+              })),
+            })),
+          },
+        },
+        context: options?.context,
+      });
+    },
+
+    sendCTAUrl: (to, bodyText, display_text, url, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<InteractiveMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'interactive',
+        interactive: {
+          body: { text: bodyText },
+          ...(options?.footerText
+            ? { footer: { text: options.footerText } }
+            : {}),
+          header: options?.header,
+          type: 'cta_url',
+          action: {
+            name: 'cta_url',
+            parameters: { display_text, url },
+          },
+        },
+        context: options?.context,
+      });
+    },
+
+    sendFlow: (to, flowIdOrName, ctaText, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<FlowMessage>({
+        ...payloadBase,
+        to: recipientInfo.to,
+        recipient: recipientInfo.recipient,
+        type: 'interactive',
+        context: options?.context,
+        interactive: {
+          body: {
+            text: options.body,
+          },
+          ...(options?.footer
+            ? {
+              footer: { text: options.footer },
+            }
+            : {}),
+          header: options?.header,
+          type: 'flow',
+          action: {
+            name: 'flow',
+            parameters: {
+              flow_message_version: '3',
+              ...getFlowIdentifier(flowIdOrName),
+              flow_cta: ctaText,
+              mode: options?.mode,
+              flow_token: options?.flowToken,
+              flow_action: options?.flowAction,
+              flow_action_payload: options?.flowActionPayload,
             },
-          })),
-        },
-      },
-    }),
-    sendList: (to, buttonName, bodyText, sections, options) => sendRequest<InteractiveMessage>({
-      ...payloadBase,
-      to,
-      type: 'interactive',
-      context: options?.context,
-      interactive: {
-        body: {
-          text: bodyText,
-        },
-        ...(options?.footerText
-          ? {
-            footer: { text: options?.footerText },
-          }
-          : {}),
-        header: options?.header,
-        type: 'list',
-        action: {
-          button: buttonName,
-          sections: Object.entries(sections).map(([key, value]) => ({
-            title: key,
-            rows: value,
-          })),
-        },
-      },
-    }),
-    sendCTAUrl: (to, bodyText, display_text, url, options) => sendRequest<InteractiveMessage>({
-      ...payloadBase,
-      to,
-      type: 'interactive',
-      context: options?.context,
-      interactive: {
-        body: {
-          text: bodyText,
-        },
-        ...(options?.footerText
-          ? {
-            footer: { text: options?.footerText },
-          }
-          : {}),
-        header: options?.header,
-        type: 'cta_url',
-        action: {
-          name: 'cta_url',
-          parameters: {
-            display_text,
-            url,
           },
         },
-      },
-    }),
-    sendFlow: (to, flowIdOrName, ctaText, options) => sendRequest<FlowMessage>({
-      ...payloadBase,
-      to,
-      type: 'interactive',
-      context: options?.context,
-      interactive: {
-        body: {
-          text: options.body,
-        },
-        ...(options?.footer
-          ? {
-            footer: { text: options.footer },
-          }
-          : {}),
-        header: options?.header,
-        type: 'flow',
-        action: {
-          name: 'flow',
-          parameters: {
-            flow_message_version: '3',
-            ...getFlowIdentifier(flowIdOrName),
-            flow_cta: ctaText,
-            mode: options?.mode,
-            flow_token: options?.flowToken,
-            flow_action: options?.flowAction,
-            flow_action_payload: options?.flowActionPayload,
-          },
-        },
-      },
-    }),
+      });
+    },
     markAsRead: (message_id, status, typing_indicator) => sendRequest<MarkAsRead>({
       ...payloadBase,
       status,

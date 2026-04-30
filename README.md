@@ -148,6 +148,29 @@ bot.on("nfm_reply", (msg) => {
 
 ---
 
+## 🆔 BSUID & Username Integration (April 2026)
+
+This library is fully compliant with Meta's April 2026 requirements for **Business-Scoped User IDs (BSUID)** and **Usernames**.
+
+### What you need to know:
+- **Primary Identifier**: As users adopt usernames, phone numbers (`wa_id`) will become optional. You should use the `from_user_id` (BSUID) as your primary user key.
+- **Scoping**: BSUIDs are unique to **YOUR** business portfolio. The same user will have a different BSUID if they message a different business.
+- **Replying**: Use the `recipient` option in any send method to target a user by their BSUID.
+
+```ts
+bot.on("text", async (msg) => {
+  // Use replyTarget to respond. It automatically handles both
+  // legacy phone numbers and new BSUIDs for you!
+  await bot.sendText(msg.replyTarget, "Hello!");
+
+  console.log(`Message from BSUID: ${msg.from_user_id}`);
+});
+```
+
+For a detailed guide on transitioning to BSUID, see the **[BSUID Guide](./docs/BSUID_GUIDE.md)**.
+
+---
+
 ## 📚 Examples
 
 ```ts

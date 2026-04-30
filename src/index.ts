@@ -27,3 +27,6 @@ export type {
 
 export { PubSubEvents } from './utils/pubSub';
 export type { PubSubEvent } from './utils/pubSub';
+
+export { Phone, UserId } from './recipient';
+export type { RecipientTarget, PhoneTarget, UserIdTarget } from './recipient';

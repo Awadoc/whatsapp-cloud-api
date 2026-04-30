@@ -41,6 +41,7 @@ import { FreeFormObject } from './utils/misc';
 import { PubSubEvent, PubSubEvents } from './utils/pubSub';
 import { Message } from './createBot.types';
 import { WebhookContact } from './messages.types';
+import { Phone, UserId } from './recipient';
 import { DebugLogger } from './utils/logger';
 
 // ============================================================================
@@ -68,6 +69,7 @@ export type NextPagesHandler = (
 interface WebhookMessagePayload {
   from: string;
   from_user_id?: string;
+  from_parent_user_id?: string;
   id: string;
   timestamp: string;
   type: string;
@@ -98,13 +100,15 @@ interface WebhookBody {
       value?: {
         metadata?: { phone_number_id?: string };
         contacts?: Array<{
-          profile?: { name?: string };
+          profile?: { name?: string; username?: string };
           wa_id?: string;
           user_id?: string;
+          parent_user_id?: string;
         }>;
         messages?: WebhookMessagePayload[];
         statuses?: unknown[];
       };
+      field?: string;
     }>;
   }>;
 }
@@ -117,16 +121,44 @@ function processWebhookBody(
   body: WebhookBody,
   fromPhoneNumberId: string,
 ): { event: PubSubEvent; payload: Message } | null {
-  if (
-    !body.object
-    || !body.entry?.[0]?.changes?.[0]?.value
-    || !body.entry?.[0]?.changes?.[0]?.value?.messages?.length
-  ) {
+  if (!body.object || !body.entry?.[0]?.changes?.[0]?.value) {
     return null;
   }
 
-  // Status updates - acknowledge but don't process
-  if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
+  // New BSUID events
+  const field = body.entry?.[0]?.changes?.[0]?.field;
+  const value = body.entry?.[0]?.changes?.[0]?.value;
+
+  if (field === 'user_id_update' || field === 'business_username_update') {
+    const phoneNumberId = value?.metadata?.phone_number_id;
+
+    // Only process if it matches this bot's phone number
+    if (phoneNumberId === fromPhoneNumberId) {
+      const eventType = field as PubSubEvent;
+      const payload = {
+        from_user_id: (value as any).user_id || (value as any).new_user_id,
+        type: eventType,
+        data: field === 'user_id_update'
+          ? {
+            old_user_id: (value as any).old_user_id,
+            new_user_id: (value as any).new_user_id,
+          }
+          : {
+            user_id: (value as any).user_id,
+          },
+        timestamp: Math.floor(Date.now() / 1000).toString(),
+      } as Message;
+
+      [
+        `bot-${fromPhoneNumberId}-message`,
+        `bot-${fromPhoneNumberId}-${eventType}`,
+      ].forEach((e) => PubSub.publish(e, payload));
+    }
+
+    return null;
+  }
+
+  if (!body.entry?.[0]?.changes?.[0]?.value?.messages?.length) {
     return null;
   }
 
@@ -134,7 +166,10 @@ function processWebhookBody(
   if (!messageData) return null;
 
   const {
-    from, id, timestamp, type, context, ...rest
+    from, id, timestamp, type, context,
+    from_user_id: fromUserId,
+    from_parent_user_id: fromParentUserId,
+    ...rest
   } = messageData;
   const phoneNumberId = body.entry[0].changes[0].value?.metadata?.phone_number_id;
 
@@ -220,25 +255,17 @@ function processWebhookBody(
   const isSystemMessage = type === 'system';
   const contactName = body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
   const contacts = body.entry[0].changes[0].value?.contacts;
-  // Types need update in WebhookBody definition above first?
-  // Wait, WebhookBody in next.ts is defined locally around line 96. I need to update that too.
 
-  let bsuid: string | undefined;
-  // We need to cast messageData to access from_user_id if not keyof WebhookMessagePayload
-  // Let's update WebhookMessagePayload first.
-
-  // Assuming WebhookMessagePayload is updated in a separate step or I cast here.
-  // @ts-ignore
-  bsuid = messageData.from_user_id;
+  let bsuid = fromUserId;
+  let parentBsuid = fromParentUserId;
 
   if (!bsuid && contacts) {
-    // @ts-ignore
     const contact = contacts.find(
       (c) => c.wa_id === from || (c.user_id && from === ''),
     );
     if (contact) {
-      // @ts-ignore
       bsuid = contact.user_id;
+      parentBsuid = contact.parent_user_id;
     }
   }
 
@@ -246,6 +273,8 @@ function processWebhookBody(
     const payload = {
       from,
       from_user_id: bsuid,
+      from_parent_user_id: parentBsuid,
+      replyTarget: from ? Phone(from) : UserId(bsuid!),
       name: isSystemMessage ? undefined : contactName,
       id,
       timestamp,
