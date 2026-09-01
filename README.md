@@ -91,11 +91,15 @@ bot.on("message", (msg) => console.log(msg));
 
 ## 💡 Features
 
-- ✅ Send & receive all message types: text, image, video, audio, location, templates, buttons.
-- ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router).
+- ✅ Send & receive all message types: text, media, location, contacts, templates, buttons, lists, CTA URLs, reactions.
+- ✅ Delivery & read receipts via `bot.on('status', ...)`; `edit` / `revoke` events.
+- ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router), with `X-Hub-Signature-256` verification.
+- ✅ **BSUID & Username ready (Meta 2026)** — typed identities, migration guide, `user_id_update` handling.
+- ✅ Account management: message templates, business username, business profile, block list.
 - ✅ Full TypeScript typing & dev experience.
-- ✅ Custom routing support for integration with existing apps.
 - ✅ **WhatsApp Flows** - Full support for creating, managing, and handling interactive flows.
+
+See the [full API reference](./API.md).
 
 ---
 
@@ -153,21 +157,28 @@ bot.on("nfm_reply", (msg) => {
 This library is fully compliant with Meta's April 2026 requirements for **Business-Scoped User IDs (BSUID)** and **Usernames**.
 
 ### What you need to know:
-- **Primary Identifier**: As users adopt usernames, phone numbers (`wa_id`) will become optional. You should use the `from_user_id` (BSUID) as your primary user key.
-- **Scoping**: BSUIDs are unique to **YOUR** business portfolio. The same user will have a different BSUID if they message a different business.
-- **Replying**: Use the `recipient` option in any send method to target a user by their BSUID.
+- **Primary identifier**: as users adopt usernames, the phone number (`wa_id`) may be absent. Use `msg.from_user_id` / `msg.identity.key` (BSUID) as your primary user key.
+- **Scoping**: a BSUID is unique to **your** business portfolio — the same person has a different BSUID with a different business.
+- **Replying**: pass `msg.replyTarget` to any `send*` method; it's a phone number or BSUID, whichever WhatsApp gave you.
+- **Keeping the mapping**: handle `bot.on('user_id_update', ...)` — a user's BSUID changes when they change phone number.
 
 ```ts
 bot.on("text", async (msg) => {
-  // Use replyTarget to respond. It automatically handles both
-  // legacy phone numbers and new BSUIDs for you!
-  await bot.sendText(msg.replyTarget, "Hello!");
+  await bot.sendText(msg.replyTarget!, "Hello!");
 
-  console.log(`Message from BSUID: ${msg.from_user_id}`);
+  const { key, primary, phoneUnavailable, username } = msg.identity!;
+  // key: stable DB key · primary: 'phone' | 'bsuid' · phoneUnavailable: boolean
+});
+
+bot.on("user_id_update", ({ data }) => {
+  db.users.remap(data.previous, data.current);
 });
 ```
 
-For a detailed guide on transitioning to BSUID, see the **[BSUID Guide](./docs/BSUID_GUIDE.md)**.
+**Start now.** A user who adopted a username more than 30 days ago will look like
+a brand-new contact if your only key is their phone number. See the step-by-step
+**[BSUID migration guide](./docs/BSUID_GUIDE.md)** — storage schema, resolve-or-create,
+keeping the mapping fresh, and how to send.
 
 ---
 

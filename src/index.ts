@@ -28,5 +28,34 @@ export type {
 export { PubSubEvents } from './utils/pubSub';
 export type { PubSubEvent } from './utils/pubSub';
 
-export { Phone, UserId } from './recipient';
-export type { RecipientTarget, PhoneTarget, UserIdTarget } from './recipient';
+export { Phone, UserId, getRecipientIdentity } from './recipient';
+export type {
+  RecipientTarget,
+  PhoneTarget,
+  UserIdTarget,
+  RecipientIdentity,
+  ResolvedRecipient,
+} from './recipient';
+
+// Webhook internals — for building a custom (non-Express/Next) server.
+export {
+  parseWebhookPayload,
+  publishWebhookEvents,
+  verifyWebhookChallenge,
+  handleWebhookPost,
+} from './webhook';
+export type { WebhookOptions, ParsedEvent, ParseResult } from './webhook';
+export { verifyWebhookSignature } from './utils/signature';
+
+// Account-level management APIs.
+export { authTemplateComponents } from './management/templates';
+export type {
+  TemplatesApi,
+  TemplateCategory,
+  TemplateStatus,
+  MessageTemplateSummary,
+  CreateTemplateInput,
+} from './management/templates';
+export type { UsernameApi, UsernameStatus } from './management/username';
+export type { BusinessProfile, BusinessProfileApi } from './management/businessProfile';
+export type { BlockUsersApi, BlockedUser } from './management/blockUsers';

@@ -17,13 +17,19 @@ import {
   MarkAsRead,
   FlowMessage,
   FlowIdentifier,
+  ReactionMessage,
 } from './messages.types';
 import {
+  getGraphAxiosClient,
   getMediaAxiosClient,
   getMessagesAxiosClient,
   sendRequestHelper,
 } from './sendRequestHelper';
 import { resolveRecipient } from './recipient';
+import { createTemplatesApi } from './management/templates';
+import { createUsernameApi } from './management/username';
+import { createBusinessProfileApi } from './management/businessProfile';
+import { createBlockUsersApi } from './management/blockUsers';
 
 interface PaylodBase {
   messaging_product: 'whatsapp';
@@ -37,18 +43,25 @@ const payloadBase: PaylodBase = {
 };
 
 export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
+  const version = opts?.version;
   const messagesClient = getMessagesAxiosClient(
     fromPhoneNumberId,
     accessToken,
-    opts?.version,
+    version,
   );
   const mediaClient = getMediaAxiosClient(
     fromPhoneNumberId,
     accessToken,
-    opts?.version,
+    version,
   );
+  const graphClient = getGraphAxiosClient(accessToken, version);
   const sendRequest = sendRequestHelper(messagesClient, 'messages');
   const uploadMediaRequest = sendRequestHelper(mediaClient, 'media');
+
+  const templates = createTemplatesApi(graphClient, opts?.wabaId);
+  const username = createUsernameApi(graphClient, fromPhoneNumberId);
+  const profile = createBusinessProfileApi(graphClient, fromPhoneNumberId);
+  const blockUsers = createBlockUsersApi(graphClient, fromPhoneNumberId);
 
   const getMediaPayload = (urlOrObjectId: string, options?: MediaBase) => ({
     ...(isURL(urlOrObjectId) ? { link: urlOrObjectId } : { id: urlOrObjectId }),
@@ -79,8 +92,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<TextMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'text',
         text: {
           preview_url: options?.preview_url,
@@ -94,8 +106,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<TextMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'text',
         text: {
           preview_url: options?.preview_url,
@@ -109,8 +120,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<MediaMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'image',
         image: getMediaPayload(urlOrObjectId, options),
         context: options?.context,
@@ -121,8 +131,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<MediaMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'document',
         document: getMediaPayload(urlOrObjectId, options),
         context: options?.context,
@@ -133,8 +142,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<MediaMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'audio',
         audio: getMediaPayload(urlOrObjectId),
         context: options?.context,
@@ -145,8 +153,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<MediaMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'video',
         video: getMediaPayload(urlOrObjectId, options),
         context: options?.context,
@@ -157,8 +164,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<MediaMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'sticker',
         sticker: getMediaPayload(urlOrObjectId),
         context: options?.context,
@@ -169,8 +175,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<LocationMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'location',
         location: {
           latitude,
@@ -186,8 +191,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<TemplateMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'template',
         template: {
           name,
@@ -202,8 +206,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<ContactMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'contacts',
         contacts,
         context: options?.context,
@@ -214,8 +217,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<InteractiveMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'interactive',
         interactive: {
           body: { text: bodyText },
@@ -239,8 +241,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<InteractiveMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'interactive',
         interactive: {
           body: { text: bodyText },
@@ -269,8 +270,7 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<InteractiveMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'interactive',
         interactive: {
           body: { text: bodyText },
@@ -288,12 +288,28 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
       });
     },
 
+    sendRequestContactInfo: (to, bodyText, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<InteractiveMessage>({
+        ...payloadBase,
+        ...recipientInfo,
+        type: 'interactive',
+        interactive: {
+          body: { text: bodyText },
+          ...(options?.footerText ? { footer: { text: options.footerText } } : {}),
+          header: options?.header,
+          type: 'request_contact_info',
+          action: { name: 'request_contact_info' },
+        },
+        context: options?.context,
+      });
+    },
+
     sendFlow: (to, flowIdOrName, ctaText, options) => {
       const recipientInfo = resolveRecipient(to, options?.recipient);
       return sendRequest<FlowMessage>({
         ...payloadBase,
-        to: recipientInfo.to,
-        recipient: recipientInfo.recipient,
+        ...recipientInfo,
         type: 'interactive',
         context: options?.context,
         interactive: {
@@ -322,12 +338,37 @@ export const createBot: ICreateBot = (fromPhoneNumberId, accessToken, opts) => {
         },
       });
     },
-    markAsRead: (message_id, status, typing_indicator) => sendRequest<MarkAsRead>({
-      ...payloadBase,
-      status,
-      message_id,
-      typing_indicator,
-    }),
+    sendReaction: (to, messageId, emoji, options) => {
+      const recipientInfo = resolveRecipient(to, options?.recipient);
+      return sendRequest<ReactionMessage>({
+        ...payloadBase,
+        ...recipientInfo,
+        type: 'reaction',
+        reaction: {
+          message_id: messageId,
+          // Empty string removes a previously-sent reaction.
+          emoji: emoji ?? '',
+        },
+      });
+    },
+
+    markAsRead: (message_id, statusOrTyping, typing_indicator) => {
+      // Back-compat: markAsRead(id), markAsRead(id, 'read'),
+      // markAsRead(id, true), markAsRead(id, 'read', { type: 'text' })
+      const showTyping = statusOrTyping === true
+        || typing_indicator === true
+        || (typeof typing_indicator === 'object' && typing_indicator !== null);
+      return sendRequest<MarkAsRead>({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id,
+        ...(showTyping ? { typing_indicator: { type: 'text' } } : {}),
+      });
+    },
+    templates,
+    username,
+    profile,
+    blockUsers,
     uploadMedia: async (filePathInput, mimeType, filename) => {
       let filePath: string | undefined;
       let fileBuffer: Buffer | undefined;

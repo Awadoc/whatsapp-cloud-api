@@ -23,7 +23,9 @@ export const PubSubEvents = {
   button_reply: 'button_reply',
   /** Triggered when a user selects an item from a list message */
   list_reply: 'list_reply',
-  /** Triggered when a user changes their phone number */
+  /** Triggered when a user taps a quick-reply button on a template message */
+  button: 'button',
+  /** Triggered when a user changes their phone number (legacy) */
   user_changed_number: 'user_changed_number',
   /** Triggered for WhatsApp Flow completion responses */
   nfm_reply: 'nfm_reply',
@@ -31,13 +33,21 @@ export const PubSubEvents = {
   reaction: 'reaction',
   /** Triggered when an order is placed via a product catalog */
   order: 'order',
-  /** Internal WhatsApp system notifications */
+  /** Internal WhatsApp system notifications (number/identity/BSUID changes) */
   system: 'system',
-  /** Message delivery/read status updates */
+  /** Message delivery/read/sent/failed status updates */
   status: 'status',
-  /** Triggered when a user's BSUID is updated (Meta 2026) */
+  /** Triggered when a user edits a message they previously sent */
+  edit: 'edit',
+  /** Triggered when a user deletes (revokes) a message for everyone */
+  revoke: 'revoke',
+  /** Triggered for an incoming message type this library does not model */
+  unsupported: 'unsupported',
+  /** Triggered when a WhatsApp user's BSUID changes (Meta 2026) */
   user_id_update: 'user_id_update',
-  /** Triggered when a user updates their username or profile (Meta 2026) */
+  /** Triggered when a business username status changes (Meta 2026) */
+  business_username_updates: 'business_username_updates',
+  /** @deprecated alias of `business_username_updates` */
   business_username_update: 'business_username_update',
 } as const satisfies Record<keyof FreeFormObjectMap, keyof FreeFormObjectMap>;
 

@@ -6,8 +6,8 @@ export interface Message {
   messaging_product: 'whatsapp';
   recipient_type: 'individual';
   /** Recipient phone number. Use this OR `recipient`, not both (phone takes precedence). */
-  to: string;
-  /** Recipient BSUID. Alternative to `to` when you don't know the user's phone number. */
+  to?: string;
+  /** Recipient BSUID / parent BSUID. Alternative to `to` when you don't know the phone number. */
   recipient?: string;
   from?: string; // Optional (incoming — omitted when user has username & phone unavailable)
   from_user_id?: string; // BSUID (incoming)
@@ -143,6 +143,14 @@ export interface InteractiveURL {
   };
 }
 
+/** Interactive message asking the user to share their phone number (Meta 2026). */
+export interface InteractiveRequestContactInfo {
+  type: 'request_contact_info';
+  action: {
+    name: 'request_contact_info';
+  };
+}
+
 export type FlowActionPayload = {
   screen: string;
   data?: Record<string, string | number | boolean | null | object>;
@@ -188,7 +196,12 @@ export interface InteractiveListMessage {
 }
 
 type Interactive = InteractiveBase &
-(InteractiveReplyButton | InteractiveListMessage | InteractiveURL);
+(
+  | InteractiveReplyButton
+  | InteractiveListMessage
+  | InteractiveURL
+  | InteractiveRequestContactInfo
+);
 
 type InteractiveWithFlow = InteractiveBase & InteractiveFlow;
 
@@ -377,6 +390,16 @@ export interface VideoMessage extends Message {
   type: 'video';
   video: Media;
 }
+
+export interface ReactionMessage extends Message {
+  type: 'reaction';
+  reaction: {
+    message_id: string;
+    /** Emoji to react with. Empty string removes a previously-sent reaction. */
+    emoji: string;
+  };
+}
+
 export interface MarkAsRead {
   messaging_product: 'whatsapp';
   message_id: string;

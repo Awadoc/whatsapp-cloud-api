@@ -16,12 +16,17 @@ import {
 } from './sendRequestHelper.types';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
-import { RecipientTarget } from './recipient';
+import { RecipientTarget, RecipientIdentity } from './recipient';
+import { TemplatesApi } from './management/templates';
+import { UsernameApi } from './management/username';
+import { BusinessProfileApi } from './management/businessProfile';
+import { BlockUsersApi } from './management/blockUsers';
 
 export interface GenericMessage<
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
-  from: string;
+  /** Sender phone number. May be `undefined`/empty for username users. */
+  from?: string;
   from_user_id?: string;
   from_parent_user_id?: string;
   name: string | undefined;
@@ -30,7 +35,10 @@ export interface GenericMessage<
   type: K;
   data: FreeFormObject<K>;
   contact?: WebhookContact;
-  replyTarget: RecipientTarget;
+  /** Ready-to-use send target for replying (phone or BSUID, whichever is available). */
+  replyTarget?: RecipientTarget;
+  /** Normalized identity: which identifier you got, the stable key, username, etc. */
+  identity?: RecipientIdentity;
 }
 
 export type AllPossibleMessages = {
@@ -224,10 +232,41 @@ export interface Bot {
     options: SendFlowOptions,
   ) => Promise<SendMessageResult>;
 
+  /**
+   * React to a message with an emoji. Pass an empty string (or omit `emoji`) to
+   * remove a reaction you previously sent.
+   */
+  sendReaction: (
+    to: string | RecipientTarget,
+    messageId: string,
+    emoji?: string,
+    options?: BaseOptionType,
+  ) => Promise<SendMessageResult>;
+
+  /**
+   * Send an interactive "share your phone number" prompt (Meta 2026). Useful once a
+   * user has adopted a username and you still need their number.
+   */
+  sendRequestContactInfo: (
+    to: string | RecipientTarget,
+    bodyText: string,
+    options?: BaseOptionType & {
+      footerText?: string;
+      header?: InteractiveHeader;
+    },
+  ) => Promise<SendMessageResult>;
+
+  /**
+   * Mark an inbound message as read (and optionally show the typing indicator).
+   *
+   * `markAsRead(id)` — mark read
+   * `markAsRead(id, true)` — mark read + typing indicator
+   * `markAsRead(id, 'read', { type: 'text' })` — legacy form, still works
+   */
   markAsRead: (
     message_id: string,
-    status: MarkAsRead['status'],
-    typing_indicator?: MarkAsRead['typing_indicator'],
+    statusOrTyping?: MarkAsRead['status'] | boolean,
+    typing_indicator?: MarkAsRead['typing_indicator'] | boolean,
   ) => Promise<SendMessageResult>;
 
   uploadMedia: (
@@ -235,12 +274,26 @@ export interface Bot {
     mimeType?: string | null,
     filename?: string,
   ) => Promise<UploadMediaResult>;
+
+  /** Message-template management (needs `wabaId`). */
+  templates: TemplatesApi;
+  /** Business username management (Meta 2026). */
+  username: UsernameApi;
+  /** Business profile (about, address, websites, …). */
+  profile: BusinessProfileApi;
+  /** Block / unblock users. */
+  blockUsers: BlockUsersApi;
 }
 
 export type ICreateBot = (
   fromPhoneNumberId: string,
   accessToken: string,
   options?: {
+    /** Graph API version, e.g. `v21.0`. Defaults to `v20.0`. */
     version?: string;
+    /** WhatsApp Business Account id — required only for `bot.templates.*`. */
+    wabaId?: string;
+    /** Meta app secret — enables webhook signature verification when passed to the route. */
+    appSecret?: string;
   },
 ) => Bot;

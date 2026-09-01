@@ -10,11 +10,14 @@
  * // Target by phone number (traditional)
  * await bot.sendText(Phone('+2349012345678'), 'Hello!');
  *
- * // Target by BSUID (new, for username users)
+ * // Target by BSUID (for users who adopted a username)
  * await bot.sendText(UserId(msg.from_user_id), 'Hello!');
  *
  * // Or just pass a plain string — treated as phone (backwards compatible)
  * await bot.sendText('+2349012345678', 'Hello!');
+ *
+ * // Or reply to an incoming message without caring which it is
+ * await bot.sendText(msg.replyTarget, 'Hello!');
  */
 
 /** @internal */
@@ -50,7 +53,7 @@ export function Phone(phoneNumber: string): PhoneTarget {
 
 /**
  * Create a BSUID-based recipient target.
- * @param userId The Business-Scoped User ID (e.g. 'user.abc123bsuid')
+ * @param userId The Business-Scoped User ID (e.g. 'US.13491208655302741918')
  */
 export function UserId(userId: string): UserIdTarget {
   return { kind: USER_ID_TARGET, value: userId };
@@ -67,25 +70,87 @@ export function isRecipientTarget(v: unknown): v is RecipientTarget {
   );
 }
 
+/** The raw recipient fields the Messages API expects. */
+export interface ResolvedRecipient {
+  /** Present only when targeting by phone number. */
+  to?: string;
+  /** Present only when targeting by BSUID / parent BSUID. */
+  recipient?: string;
+}
+
 /**
  * @internal — resolves any supported recipient input into the raw fields
- * the WhatsApp API expects: { to, recipient }.
+ * the WhatsApp API expects.
  *
- * - Plain string → treated as phone number → `{ to: string, recipient: undefined }`
- * - `Phone(...)` → `{ to: string, recipient: undefined }`
- * - `UserId(...)` → `{ to: '', recipient: string }`
+ * - Plain string → `{ to: string }`
+ * - `Phone(...)` → `{ to: string }` (plus any explicit `recipient` override)
+ * - `UserId(...)` → `{ recipient: string }` — `to` is **omitted**, not sent empty
  */
 export function resolveRecipient(
   input: string | RecipientTarget,
   explicitRecipient?: string,
-): { to: string; recipient: string | undefined } {
+): ResolvedRecipient {
   if (isRecipientTarget(input)) {
     if (input.kind === USER_ID_TARGET) {
-      return { to: '', recipient: input.value };
+      return { recipient: input.value };
     }
-    // PhoneTarget
-    return { to: input.value, recipient: explicitRecipient };
+    return explicitRecipient
+      ? { to: input.value, recipient: explicitRecipient }
+      : { to: input.value };
   }
-  // Plain string — backwards compatible phone number
-  return { to: input, recipient: explicitRecipient };
+  return explicitRecipient ? { to: input, recipient: explicitRecipient } : { to: input };
+}
+
+// ============================================================================
+// Identity — "which identifier did I actually receive?"
+// ============================================================================
+
+/**
+ * A normalized view of who a webhook is about, so callers don't have to inspect
+ * empty strings and missing fields themselves.
+ */
+export interface RecipientIdentity {
+  /** The stable key to use in your database. Prefers BSUID, falls back to phone. */
+  key: string;
+  /** `'bsuid'` when the phone number is unavailable, otherwise `'phone'`. */
+  primary: 'phone' | 'bsuid';
+  /** Phone number, if WhatsApp included one. */
+  waId?: string;
+  /** Business-Scoped User ID, if present. */
+  userId?: string;
+  /** Parent BSUID, if parent BSUIDs are enabled on the portfolio. */
+  parentUserId?: string;
+  /** The user's WhatsApp username, if they have adopted one. */
+  username?: string;
+  /** `true` when WhatsApp did not share a phone number for this user. */
+  phoneUnavailable: boolean;
+  /** A ready-to-use send target for replying. */
+  replyTarget?: RecipientTarget;
+}
+
+export function getRecipientIdentity(input: {
+  wa_id?: string;
+  user_id?: string;
+  parent_user_id?: string;
+  username?: string;
+}): RecipientIdentity {
+  const waId = input.wa_id || undefined;
+  const userId = input.user_id || undefined;
+  const primary: 'phone' | 'bsuid' = waId ? 'phone' : 'bsuid';
+  const key = (userId || waId) as string;
+
+  let replyTarget: RecipientTarget | undefined;
+  if (waId) replyTarget = Phone(waId);
+  else if (userId) replyTarget = UserId(userId);
+
+  return {
+    key,
+    primary,
+    waId,
+    userId,
+    parentUserId: input.parent_user_id || undefined,
+    username: input.username || undefined,
+    phoneUnavailable: !waId,
+    replyTarget,
+  };
 }

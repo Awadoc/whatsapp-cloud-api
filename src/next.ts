@@ -12,6 +12,7 @@
  *
  * export const { GET, POST } = getNextAppRouteHandlers(phoneId, {
  *   webhookVerifyToken: process.env.VERIFY_TOKEN,
+ *   appSecret: process.env.APP_SECRET,
  * });
  *
  * bot.on('message', (msg) => console.log(msg));
@@ -20,37 +21,25 @@
  * @example Pages Router
  * ```typescript
  * // pages/api/whatsapp/webhook.ts
- * import { createBot } from '@awadoc/whatsapp-cloud-api';
  * import { getNextPagesApiHandler } from '@awadoc/whatsapp-cloud-api/next';
- *
- * const phoneId = process.env.PHONE_ID!;
- * const bot = createBot(phoneId, process.env.TOKEN!);
  *
  * export default getNextPagesApiHandler(phoneId, {
  *   webhookVerifyToken: process.env.VERIFY_TOKEN,
  * });
- *
- * bot.on('message', (msg) => console.log(msg));
+ * // Pages Router needs the raw body for signature checks:
+ * export const config = { api: { bodyParser: false } };
  * ```
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import PubSub from 'pubsub-js';
-import { FreeFormObject } from './utils/misc';
-import { PubSubEvent, PubSubEvents } from './utils/pubSub';
-import { Message } from './createBot.types';
-import { WebhookContact } from './messages.types';
-import { Phone, UserId } from './recipient';
-import { DebugLogger } from './utils/logger';
+import {
+  WebhookOptions,
+  verifyWebhookChallenge,
+  handleWebhookPost,
+} from './webhook';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface NextServerOptions {
-  webhookVerifyToken?: string;
-}
+export type NextServerOptions = WebhookOptions;
 
 export interface NextAppRouteHandlers {
   GET: (request: NextRequest) => NextResponse;
@@ -62,393 +51,113 @@ export type NextPagesHandler = (
   res: NextApiResponse,
 ) => Promise<void>;
 
-// ============================================================================
-// Webhook Body Types
-// ============================================================================
-
-interface WebhookMessagePayload {
-  from: string;
-  from_user_id?: string;
-  from_parent_user_id?: string;
-  id: string;
-  timestamp: string;
-  type: string;
-  text?: { body: string };
-  image?: Record<string, unknown>;
-  document?: Record<string, unknown>;
-  audio?: Record<string, unknown>;
-  video?: Record<string, unknown>;
-  sticker?: Record<string, unknown>;
-  location?: Record<string, unknown>;
-  contacts?: Record<string, unknown>;
-  interactive?: {
-    type: string;
-    list_reply?: Record<string, unknown>;
-    button_reply?: Record<string, unknown>;
-    nfm_reply?: Record<string, unknown>;
-  };
-  reaction?: Record<string, unknown>;
-  order?: Record<string, unknown>;
-  system?: Record<string, unknown>;
-  context?: Record<string, unknown>;
-}
-
-interface WebhookBody {
-  object?: string;
-  entry?: Array<{
-    changes?: Array<{
-      value?: {
-        metadata?: { phone_number_id?: string };
-        contacts?: Array<{
-          profile?: { name?: string; username?: string };
-          wa_id?: string;
-          user_id?: string;
-          parent_user_id?: string;
-        }>;
-        messages?: WebhookMessagePayload[];
-        statuses?: unknown[];
-      };
-      field?: string;
-    }>;
-  }>;
-}
+const readRawBody = (req: NextApiRequest): Promise<string> => {
+  if (typeof req.body === 'string') return Promise.resolve(req.body);
+  if (req.body && typeof req.body === 'object') {
+    return Promise.resolve(JSON.stringify(req.body));
+  }
+  return new Promise<string>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(
+      typeof chunk === 'string' ? Buffer.from(chunk) : chunk,
+    ));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+};
 
 // ============================================================================
-// Webhook Processing
+// App Router
 // ============================================================================
 
-function processWebhookBody(
-  body: WebhookBody,
-  fromPhoneNumberId: string,
-): { event: PubSubEvent; payload: Message } | null {
-  if (!body.object || !body.entry?.[0]?.changes?.[0]?.value) {
-    return null;
-  }
-
-  // New BSUID events
-  const field = body.entry?.[0]?.changes?.[0]?.field;
-  const value = body.entry?.[0]?.changes?.[0]?.value;
-
-  if (field === 'user_id_update' || field === 'business_username_update') {
-    const phoneNumberId = value?.metadata?.phone_number_id;
-
-    // Only process if it matches this bot's phone number
-    if (phoneNumberId === fromPhoneNumberId) {
-      const eventType = field as PubSubEvent;
-      const payload = {
-        from_user_id: (value as any).user_id || (value as any).new_user_id,
-        type: eventType,
-        data: field === 'user_id_update'
-          ? {
-            old_user_id: (value as any).old_user_id,
-            new_user_id: (value as any).new_user_id,
-          }
-          : {
-            user_id: (value as any).user_id,
-          },
-        timestamp: Math.floor(Date.now() / 1000).toString(),
-      } as Message;
-
-      [
-        `bot-${fromPhoneNumberId}-message`,
-        `bot-${fromPhoneNumberId}-${eventType}`,
-      ].forEach((e) => PubSub.publish(e, payload));
-    }
-
-    return null;
-  }
-
-  if (!body.entry?.[0]?.changes?.[0]?.value?.messages?.length) {
-    return null;
-  }
-
-  const messageData = body.entry[0].changes[0].value.messages?.[0];
-  if (!messageData) return null;
-
-  const {
-    from, id, timestamp, type, context,
-    from_user_id: fromUserId,
-    from_parent_user_id: fromParentUserId,
-    ...rest
-  } = messageData;
-  const phoneNumberId = body.entry[0].changes[0].value?.metadata?.phone_number_id;
-
-  // Only process messages for this bot's phone number
-  if (phoneNumberId !== fromPhoneNumberId) {
-    return null;
-  }
-
-  let event: PubSubEvent | undefined;
-  let data: FreeFormObject<PubSubEvent> | undefined;
-
-  switch (type) {
-    case 'text':
-      event = PubSubEvents.text;
-      data = { text: rest.text?.body } as FreeFormObject<'text'>;
-      break;
-
-    case 'image':
-    case 'document':
-    case 'audio':
-    case 'video':
-    case 'sticker':
-    case 'location':
-    case 'contacts':
-      event = PubSubEvents[type as PubSubEvent];
-      data = rest[type as keyof typeof rest] as FreeFormObject<PubSubEvent>;
-      break;
-
-    case 'interactive':
-      if (rest.interactive) {
-        event = rest.interactive.type as PubSubEvent;
-        if (rest.interactive.nfm_reply) {
-          // Parse flow response JSON for nfm_reply
-          const nfmReply = rest.interactive.nfm_reply as {
-            response_json?: string;
-            body?: string;
-            name?: string;
-          };
-          let parsedResponse: Record<string, unknown> | undefined;
-          if (nfmReply.response_json) {
-            try {
-              parsedResponse = JSON.parse(nfmReply.response_json);
-            } catch {
-              // If parsing fails, leave response undefined
-            }
-          }
-          data = {
-            ...nfmReply,
-            response: parsedResponse,
-          } as FreeFormObject<'nfm_reply'>;
-        } else {
-          data = {
-            ...(rest.interactive.list_reply
-              || rest.interactive.button_reply),
-          } as FreeFormObject<PubSubEvent>;
-        }
-      }
-      break;
-
-    case 'reaction':
-      event = PubSubEvents.reaction;
-      data = rest.reaction as FreeFormObject<'reaction'>;
-      break;
-
-    case 'order':
-      event = PubSubEvents.order;
-      data = rest.order as FreeFormObject<'order'>;
-      break;
-
-    case 'system':
-      event = PubSubEvents.system;
-      data = rest.system as FreeFormObject<'system'>;
-      break;
-
-    default:
-      break;
-  }
-
-  if (context) {
-    data = { ...data, context } as FreeFormObject<PubSubEvent>;
-  }
-
-  const isSystemMessage = type === 'system';
-  const contactName = body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name;
-  const contacts = body.entry[0].changes[0].value?.contacts;
-
-  let bsuid = fromUserId;
-  let parentBsuid = fromParentUserId;
-
-  if (!bsuid && contacts) {
-    const contact = contacts.find(
-      (c) => c.wa_id === from || (c.user_id && from === ''),
-    );
-    if (contact) {
-      bsuid = contact.user_id;
-      parentBsuid = contact.parent_user_id;
-    }
-  }
-
-  if (event && data) {
-    const payload = {
-      from,
-      from_user_id: bsuid,
-      from_parent_user_id: parentBsuid,
-      replyTarget: from ? Phone(from) : UserId(bsuid!),
-      name: isSystemMessage ? undefined : contactName,
-      id,
-      timestamp,
-      type: event,
-      data: context ? { ...data, context } : data,
-      contact: contacts?.[0] as unknown as WebhookContact,
-    } as Message;
-
-    return { event, payload };
-  }
-
-  return null;
-}
-
-function publishWebhook(
-  fromPhoneNumberId: string,
-  event: PubSubEvent,
-  payload: Message,
-): void {
-  [
-    `bot-${fromPhoneNumberId}-message`,
-    `bot-${fromPhoneNumberId}-${event}`,
-  ].forEach((e) => PubSub.publish(e, payload));
-}
-
-// ============================================================================
-// App Router Handlers (Next.js 13+)
-// ============================================================================
-
-/**
- * Creates route handlers for Next.js App Router.
- *
- * @param fromPhoneNumberId - Your WhatsApp Business phone number ID
- * @param options - Server configuration options
- * @returns Object with GET and POST handlers for route.ts
- */
 export const getNextAppRouteHandlers = (
   fromPhoneNumberId: string,
   options?: NextServerOptions,
 ): NextAppRouteHandlers => ({
   GET: (request: NextRequest): NextResponse => {
-    if (!options?.webhookVerifyToken) {
-      return new NextResponse('Webhook verification not configured', {
-        status: 500,
-      });
-    }
-
     const url = new URL(request.url);
-    const mode = url.searchParams.get('hub.mode');
-    const token = url.searchParams.get('hub.verify_token');
-    const challenge = url.searchParams.get('hub.challenge');
-
-    if (!mode || !token || !challenge) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    if (mode === 'subscribe' && token === options.webhookVerifyToken) {
-      // eslint-disable-next-line no-console
-      console.log('✔️ Webhook verified');
-      return new NextResponse(challenge, {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-      });
-    }
-
-    return new NextResponse('Forbidden', { status: 403 });
+    const query = Object.fromEntries(url.searchParams.entries());
+    const { status, body } = verifyWebhookChallenge(query, options?.webhookVerifyToken);
+    return new NextResponse(body, {
+      status,
+      headers: status === 200 ? { 'content-type': 'text/plain' } : undefined,
+    });
   },
 
   POST: async (request: NextRequest): Promise<NextResponse> => {
     try {
-      const body = (await request.json()) as WebhookBody;
-      DebugLogger.logIncomingWebhook(body);
-
-      // Check for status updates (acknowledged but not processed)
-      if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
-        return new NextResponse(null, { status: 202 });
+      const raw = await request.text();
+      let body: unknown;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return new NextResponse(null, { status: 404 });
       }
-
-      const result = processWebhookBody(body, fromPhoneNumberId);
-
-      if (!result) {
-        return new NextResponse('Bad Request', { status: 400 });
-      }
-
-      publishWebhook(fromPhoneNumberId, result.event, result.payload);
-
-      return new NextResponse(null, { status: 200 });
+      const { status } = handleWebhookPost(
+        body,
+        fromPhoneNumberId,
+        options,
+        raw,
+        request.headers.get('x-hub-signature-256') ?? undefined,
+      );
+      return new NextResponse(null, { status });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Error processing webhook:', error);
-      return new NextResponse('Internal Server Error', { status: 500 });
+      return new NextResponse(null, { status: 500 });
     }
   },
 });
 
 // ============================================================================
-// Pages Router Handler
+// Pages Router
 // ============================================================================
 
-/**
- * Creates an API handler for Next.js Pages Router.
- *
- * @param fromPhoneNumberId - Your WhatsApp Business phone number ID
- * @param options - Server configuration options
- * @returns Handler function for pages/api route
- */
 export function getNextPagesApiHandler(
   fromPhoneNumberId: string,
   options?: NextServerOptions,
 ): NextPagesHandler {
-  // eslint-disable-next-line
   return async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
-    // Handle GET request (webhook verification)
     if (req.method === 'GET') {
-      if (!options?.webhookVerifyToken) {
-        res.status(500).send('Webhook verification not configured');
-        return;
-      }
-
-      const mode = req.query['hub.mode'] as string | undefined;
-      const token = req.query['hub.verify_token'] as string | undefined;
-      const challenge = req.query['hub.challenge'] as string | undefined;
-
-      if (!mode || !token || !challenge) {
-        res.status(403).send('Forbidden');
-        return;
-      }
-
-      if (mode === 'subscribe' && token === options.webhookVerifyToken) {
-        // eslint-disable-next-line no-console
-        console.log('✔️ Webhook verified');
-        res.setHeader('content-type', 'text/plain');
-        res.status(200).send(challenge);
-        return;
-      }
-
-      res.status(403).send('Forbidden');
+      const { status, body } = verifyWebhookChallenge(
+        req.query as Record<string, string | string[] | undefined>,
+        options?.webhookVerifyToken,
+      );
+      if (status === 200) res.setHeader('content-type', 'text/plain');
+      res.status(status).send(body);
       return;
     }
 
-    // Handle POST request (incoming messages)
     if (req.method === 'POST') {
       try {
-        const body = req.body as WebhookBody;
-        DebugLogger.logIncomingWebhook(body);
-
-        // Check for status updates (acknowledged but not processed)
-        if (body.entry?.[0]?.changes?.[0]?.value?.statuses) {
-          res.status(202).end();
+        const raw = await readRawBody(req);
+        let body: unknown;
+        try {
+          body = JSON.parse(raw);
+        } catch {
+          res.status(404).end();
           return;
         }
-
-        const result = processWebhookBody(body, fromPhoneNumberId);
-
-        if (!result) {
-          res.status(400).send('Bad Request');
-          return;
-        }
-
-        publishWebhook(fromPhoneNumberId, result.event, result.payload);
-
-        res.status(200).end();
+        const { status } = handleWebhookPost(
+          body,
+          fromPhoneNumberId,
+          options,
+          raw,
+          (req.headers['x-hub-signature-256'] as string | undefined),
+        );
+        res.status(status).end();
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error processing webhook:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(500).end();
       }
       return;
     }
 
-    // Method not allowed
     res.status(405).send('Method Not Allowed');
   };
 }
+
 // Re-export Next.js types for convenience
 export type { NextApiRequest, NextApiResponse } from 'next';
 export type { NextRequest } from 'next/server';
