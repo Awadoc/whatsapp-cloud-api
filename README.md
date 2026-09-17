@@ -1,9 +1,23 @@
 # whatsapp-cloud-api
 
+[![npm version](https://img.shields.io/npm/v/@awadoc/whatsapp-cloud-api.svg)](https://www.npmjs.com/package/@awadoc/whatsapp-cloud-api)
+[![tests](https://github.com/Awadoc/whatsapp-cloud-api/actions/workflows/tests.yml/badge.svg)](https://github.com/Awadoc/whatsapp-cloud-api/actions/workflows/tests.yml)
+[![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](./LICENSE)
+[![node](https://img.shields.io/node/v/@awadoc/whatsapp-cloud-api.svg)](package.json)
+
 A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/) with full TypeScript support. Built to send and receive messages, handle webhooks via Express or Next.js, and scale cleanly in your apps.
 
 > **Forked from:** [tawn33y/whatsapp-cloud-api](https://github.com/tawn33y/whatsapp-cloud-api) _(Archived)_\
 > Maintained with extended support, modular routing, and Next.js support.
+
+## 📖 Documentation
+
+| | |
+| --- | --- |
+| **[API Reference](./API.md)** | Every method, event and payload shape |
+| **[BSUID Migration Guide](./docs/BSUID_GUIDE.md)** | Moving from phone numbers to Business-Scoped User IDs |
+| **[WhatsApp Flows](./docs/flows/README.md)** | Building and hosting interactive Flows |
+| **[Changelog](./CHANGELOG.md)** | Release history |
 
 ---
 
@@ -42,7 +56,9 @@ app.use("/webhook", getExpressRoute(phoneId, { webhookVerifyToken }));
 bot.on("message", async (msg) => {
   console.log(msg);
   if (msg.type === "text") {
-    await bot.sendText(msg.from, "Got your text!");
+    // msg.replyTarget works whether the sender was identified by phone
+    // number or by BSUID (see the BSUID migration guide below).
+    await bot.sendText(msg.replyTarget!, "Got your text!");
   }
 });
 
@@ -91,11 +107,15 @@ bot.on("message", (msg) => console.log(msg));
 
 ## 💡 Features
 
-- ✅ Send & receive all message types: text, image, video, audio, location, templates, buttons.
-- ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router).
+- ✅ Send & receive all message types: text, media, location, contacts, templates, buttons, lists, CTA URLs, reactions.
+- ✅ Delivery & read receipts via `bot.on('status', ...)`; `edit` / `revoke` events.
+- ✅ Drop-in webhook support via Express or Next.js (App Router & Pages Router), with `X-Hub-Signature-256` verification.
+- ✅ **BSUID & Username ready (Meta 2026)** — typed identities, migration guide, `user_id_update` handling.
+- ✅ Account management: message templates, business username, business profile, block list.
 - ✅ Full TypeScript typing & dev experience.
-- ✅ Custom routing support for integration with existing apps.
 - ✅ **WhatsApp Flows** - Full support for creating, managing, and handling interactive flows.
+
+See the [full API reference](./API.md).
 
 ---
 
@@ -148,6 +168,36 @@ bot.on("nfm_reply", (msg) => {
 
 ---
 
+## 🆔 BSUID & Username Integration (April 2026)
+
+This library is fully compliant with Meta's April 2026 requirements for **Business-Scoped User IDs (BSUID)** and **Usernames**.
+
+### What you need to know:
+- **Primary identifier**: as users adopt usernames, the phone number (`wa_id`) may be absent. Use `msg.from_user_id` / `msg.identity.key` (BSUID) as your primary user key.
+- **Scoping**: a BSUID is unique to **your** business portfolio — the same person has a different BSUID with a different business.
+- **Replying**: pass `msg.replyTarget` to any `send*` method; it's a phone number or BSUID, whichever WhatsApp gave you.
+- **Keeping the mapping**: handle `bot.on('user_id_update', ...)` — a user's BSUID changes when they change phone number.
+
+```ts
+bot.on("text", async (msg) => {
+  await bot.sendText(msg.replyTarget!, "Hello!");
+
+  const { key, primary, phoneUnavailable, username } = msg.identity!;
+  // key: stable DB key · primary: 'phone' | 'bsuid' · phoneUnavailable: boolean
+});
+
+bot.on("user_id_update", ({ data }) => {
+  db.users.remap(data.previous, data.current);
+});
+```
+
+**Start now.** A user who adopted a username more than 30 days ago will look like
+a brand-new contact if your only key is their phone number. See the step-by-step
+**[BSUID migration guide](./docs/BSUID_GUIDE.md)** — storage schema, resolve-or-create,
+keeping the mapping fresh, and how to send.
+
+---
+
 ## 📚 Examples
 
 ```ts
@@ -167,12 +217,19 @@ await bot.sendTemplate(to, "hello_world", "en_US");
 
 ## 🔧 Custom Webhook Path or Middleware
 
-You can easily change the webhook route or plug into your existing middleware:
+`getExpressRoute` is a standalone export (not a method on `bot`) — mount it at
+whatever path you like, and inject your own middleware ahead of the parser:
 
 ```ts
+import { getExpressRoute } from "@awadoc/whatsapp-cloud-api/express";
+
 app.use(
   "/custom-whatsapp-hook",
-  bot.getExpressRoute({ webhookVerifyToken: "secret_token" }),
+  getExpressRoute(phoneId, {
+    webhookVerifyToken: "secret_token",
+    appSecret: process.env.APP_SECRET,     // verifies X-Hub-Signature-256
+    useMiddleware: (router) => router.use(myLoggingMiddleware),
+  }),
 );
 ```
 
@@ -238,4 +295,4 @@ Forks, issues, and PRs are welcome.
 
 ## 🧼 License
 
-MIT
+[GPL-3.0](./LICENSE)

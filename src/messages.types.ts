@@ -5,9 +5,13 @@ import type { RequireAtLeastOne } from 'type-fest';
 export interface Message {
   messaging_product: 'whatsapp';
   recipient_type: 'individual';
-  to: string;
-  from?: string; // Optional (incoming)
+  /** Recipient phone number. Use this OR `recipient`, not both (phone takes precedence). */
+  to?: string;
+  /** Recipient BSUID / parent BSUID. Alternative to `to` when you don't know the phone number. */
+  recipient?: string;
+  from?: string; // Optional (incoming — omitted when user has username & phone unavailable)
   from_user_id?: string; // BSUID (incoming)
+  from_parent_user_id?: string; // Parent BSUID (incoming, only if parent BSUIDs enabled)
   context?: {
     message_id: string;
   };
@@ -24,11 +28,19 @@ interface ContactName {
 export interface WebhookContact {
   profile: {
     name: string;
-    username?: string; // BSUID feature?
-    country_code?: string; // BSUID feature?
+    /** User's WhatsApp username, if they have adopted the username feature. */
+    username?: string;
   };
-  wa_id: string;
+  /**
+   * User's phone number.
+   * Omitted when the user has adopted a username and the 30-day phone-sharing
+   * condition is not met. Always check for `user_id` as the stable identifier.
+   */
+  wa_id?: string;
+  /** Business-Scoped User ID (BSUID) — stable identifier tied to this business portfolio. */
   user_id?: string;
+  /** Parent BSUID — only present when parent BSUIDs are enabled on your portfolio. */
+  parent_user_id?: string;
 }
 
 export interface Contact {
@@ -131,6 +143,14 @@ export interface InteractiveURL {
   };
 }
 
+/** Interactive message asking the user to share their phone number (Meta 2026). */
+export interface InteractiveRequestContactInfo {
+  type: 'request_contact_info';
+  action: {
+    name: 'request_contact_info';
+  };
+}
+
 export type FlowActionPayload = {
   screen: string;
   data?: Record<string, string | number | boolean | null | object>;
@@ -176,7 +196,12 @@ export interface InteractiveListMessage {
 }
 
 type Interactive = InteractiveBase &
-(InteractiveReplyButton | InteractiveListMessage | InteractiveURL);
+(
+  | InteractiveReplyButton
+  | InteractiveListMessage
+  | InteractiveURL
+  | InteractiveRequestContactInfo
+);
 
 type InteractiveWithFlow = InteractiveBase & InteractiveFlow;
 
@@ -365,6 +390,16 @@ export interface VideoMessage extends Message {
   type: 'video';
   video: Media;
 }
+
+export interface ReactionMessage extends Message {
+  type: 'reaction';
+  reaction: {
+    message_id: string;
+    /** Emoji to react with. Empty string removes a previously-sent reaction. */
+    emoji: string;
+  };
+}
+
 export interface MarkAsRead {
   messaging_product: 'whatsapp';
   message_id: string;
@@ -385,8 +420,15 @@ export interface Status {
   id: string;
   status: 'delivered' | 'read' | 'sent' | 'failed';
   timestamp: string;
-  recipient_id: string;
+  /**
+   * Recipient phone number. Omitted when you sent to a BSUID and phone is
+   * unavailable per the 30-day lookback rule.
+   */
+  recipient_id?: string;
+  /** BSUID or parent BSUID of the recipient, if message was sent to a BSUID. */
   recipient_user_id?: string;
+  /** Parent BSUID of the recipient — only present when parent BSUIDs are enabled. */
+  parent_recipient_user_id?: string;
   conversation?: {
     id: string;
     origin?: {
@@ -420,7 +462,8 @@ export interface WebhookBody {
           display_phone_number: string;
           phone_number_id: string;
         };
-        contacts?: Contact[];
+        /** User identity info accompanying incoming messages and status updates. */
+        contacts?: WebhookContact[];
         messages?: Message[];
         statuses?: Status[];
       };

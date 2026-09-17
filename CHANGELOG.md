@@ -1,5 +1,54 @@
 # CHANGELOG
 
+## 3.2.0
+
+### Added
+- **`status` events** — `bot.on('status', ...)` now fires for `sent` / `delivered` /
+  `read` / `failed` receipts, carrying `recipient_user_id` (BSUID), `pricing`,
+  `conversation` and `errors`. Previously status webhooks were dropped entirely.
+- **`edit` and `revoke` events** — when a user edits or deletes a message.
+- **`bot.sendReaction(to, messageId, emoji?)`** — send/remove an emoji reaction.
+- **`bot.sendRequestContactInfo(to, body)`** — interactive "share your phone
+  number" prompt (Meta 2026).
+- **Webhook signature verification** — pass `appSecret` to `getExpressRoute` /
+  `getNextAppRouteHandlers` / `getNextPagesApiHandler`; unsigned POSTs get 401.
+  Standalone `verifyWebhookSignature()` exported.
+- **`bot.templates`** — list / get / create / update / delete message templates
+  and read the namespace (needs `createBot(..., { wabaId })`). `authTemplateComponents()`
+  helper for OTP templates.
+- **`bot.username`** — get / set / remove the business username, plus reserved
+  suggestions (Meta 2026).
+- **`bot.profile`** — read and update the WhatsApp business profile.
+- **`bot.blockUsers`** — block / unblock / list, accepting phone numbers or BSUIDs.
+- **`msg.identity`** / **`getRecipientIdentity()`** — normalized view of which
+  identifier a webhook carried (`key`, `primary`, `phoneUnavailable`, `replyTarget`, …).
+- **`parseWebhookPayload` / `publishWebhookEvents`** exported for custom servers.
+- Full [BSUID migration guide](./docs/BSUID_GUIDE.md) and rewritten [API reference](./API.md).
+
+### Fixed
+- **Express handler returned HTTP 400 for status-only webhooks**, causing Meta to
+  retry every delivery/read receipt indefinitely. Now returns 200. A non-WhatsApp
+  body now returns 404 (was 400); a valid but empty payload returns 200.
+- **`user_id_update` webhook parsing** used the wrong payload shape. Now reads
+  Meta's `user_id_update[].user_id.{previous,current}` (old `old_user_id` /
+  `new_user_id` still exposed as aliases).
+- **`business_username_updates`** — the webhook field name was misspelled
+  (`business_username_update`); both are now handled, and the singular event name
+  is kept as a deprecated alias.
+- **`system` webhook** now recognises `type: 'user_changed_user_id'` (BSUID
+  regeneration after a phone-number change).
+- Sending to a BSUID no longer includes an empty `to: ''` field in the request.
+- `markAsRead` no longer sends a spurious `recipient_type` field and accepts
+  `markAsRead(id)` / `markAsRead(id, true)` in addition to the legacy 3-arg form.
+- All incoming messages in a single webhook are now dispatched (previously only
+  the first).
+- Webhook parsing is shared between the Express and Next.js integrations, so both
+  behave identically.
+
+### Changed
+- `Message.from` and `Message.replyTarget` are now optional (`from` is absent for
+  username users).
+
 ## 3.1.3
 
 ### Fixed

@@ -16,18 +16,29 @@ import {
 } from './sendRequestHelper.types';
 import { FreeFormObject, FreeFormObjectMap } from './utils/misc';
 import { PubSubEvent } from './utils/pubSub';
+import { RecipientTarget, RecipientIdentity } from './recipient';
+import { TemplatesApi } from './management/templates';
+import { UsernameApi } from './management/username';
+import { BusinessProfileApi } from './management/businessProfile';
+import { BlockUsersApi } from './management/blockUsers';
 
 export interface GenericMessage<
   K extends keyof FreeFormObjectMap = keyof FreeFormObjectMap,
 > {
-  from: string;
+  /** Sender phone number. May be `undefined`/empty for username users. */
+  from?: string;
   from_user_id?: string;
+  from_parent_user_id?: string;
   name: string | undefined;
   id: string;
   timestamp: string;
   type: K;
   data: FreeFormObject<K>;
   contact?: WebhookContact;
+  /** Ready-to-use send target for replying (phone or BSUID, whichever is available). */
+  replyTarget?: RecipientTarget;
+  /** Normalized identity: which identifier you got, the stable key, username, etc. */
+  identity?: RecipientIdentity;
 }
 
 export type AllPossibleMessages = {
@@ -43,6 +54,8 @@ export type SpecificEventCallback<K extends PubSubEvent> = (
 
 // 👇 Base option for all send methods
 export type BaseOptionType = {
+  /** Recipient BSUID. Use this if you don't have the user's phone number. */
+  recipient?: string;
   context?: WhatsappMessageObject['context'];
 };
 
@@ -70,7 +83,7 @@ export interface Bot {
   unsubscribe: (token: string) => string | boolean;
 
   sendText: (
-    to: string,
+    to: string | RecipientTarget,
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
@@ -78,7 +91,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendMessage: (
-    to: string,
+    to: string | RecipientTarget,
     text: string,
     options?: BaseOptionType & {
       preview_url?: boolean;
@@ -86,7 +99,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendImage: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -94,7 +107,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendDocument: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -103,13 +116,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendAudio: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendVideo: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType & {
       caption?: string;
@@ -117,13 +130,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendSticker: (
-    to: string,
+    to: string | RecipientTarget,
     urlOrObjectId: string,
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendLocation: (
-    to: string,
+    to: string | RecipientTarget,
     latitude: number,
     longitude: number,
     options?: BaseOptionType & {
@@ -133,7 +146,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendTemplate: (
-    to: string,
+    to: string | RecipientTarget,
     name: string,
     languageCode: string,
     components?: TemplateComponent[],
@@ -141,13 +154,13 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendContacts: (
-    to: string,
+    to: string | RecipientTarget,
     contacts: Contact[],
     options?: BaseOptionType,
   ) => Promise<SendMessageResult>;
 
   sendReplyButtons: (
-    to: string,
+    to: string | RecipientTarget,
     bodyText: string,
     buttons: {
       [id: string]: string | number;
@@ -159,7 +172,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendList: (
-    to: string,
+    to: string | RecipientTarget,
     buttonName: string,
     bodyText: string,
     sections: {
@@ -176,7 +189,7 @@ export interface Bot {
   ) => Promise<SendMessageResult>;
 
   sendCTAUrl: (
-    to: string,
+    to: string | RecipientTarget,
     bodyText: string,
     display_text: string,
     url: `http://${string}` | `https://${string}`,
@@ -189,7 +202,7 @@ export interface Bot {
   /**
    * Send a WhatsApp Flow message to a user.
    *
-   * @param to - Recipient phone number
+   * @param to - Recipient phone number or typed target
    * @param flowIdOrName - Flow ID string, or object with flow_id or flow_name
    * @param ctaText - Call-to-action button text (max 20 chars, no emoji)
    * @param options - Flow message options including body text
@@ -213,16 +226,47 @@ export interface Bot {
    * ```
    */
   sendFlow: (
-    to: string,
+    to: string | RecipientTarget,
     flowIdOrName: string | FlowIdentifier,
     ctaText: string,
     options: SendFlowOptions,
   ) => Promise<SendMessageResult>;
 
+  /**
+   * React to a message with an emoji. Pass an empty string (or omit `emoji`) to
+   * remove a reaction you previously sent.
+   */
+  sendReaction: (
+    to: string | RecipientTarget,
+    messageId: string,
+    emoji?: string,
+    options?: BaseOptionType,
+  ) => Promise<SendMessageResult>;
+
+  /**
+   * Send an interactive "share your phone number" prompt (Meta 2026). Useful once a
+   * user has adopted a username and you still need their number.
+   */
+  sendRequestContactInfo: (
+    to: string | RecipientTarget,
+    bodyText: string,
+    options?: BaseOptionType & {
+      footerText?: string;
+      header?: InteractiveHeader;
+    },
+  ) => Promise<SendMessageResult>;
+
+  /**
+   * Mark an inbound message as read (and optionally show the typing indicator).
+   *
+   * `markAsRead(id)` — mark read
+   * `markAsRead(id, true)` — mark read + typing indicator
+   * `markAsRead(id, 'read', { type: 'text' })` — legacy form, still works
+   */
   markAsRead: (
     message_id: string,
-    status: MarkAsRead['status'],
-    typing_indicator?: MarkAsRead['typing_indicator'],
+    statusOrTyping?: MarkAsRead['status'] | boolean,
+    typing_indicator?: MarkAsRead['typing_indicator'] | boolean,
   ) => Promise<SendMessageResult>;
 
   uploadMedia: (
@@ -230,12 +274,26 @@ export interface Bot {
     mimeType?: string | null,
     filename?: string,
   ) => Promise<UploadMediaResult>;
+
+  /** Message-template management (needs `wabaId`). */
+  templates: TemplatesApi;
+  /** Business username management (Meta 2026). */
+  username: UsernameApi;
+  /** Business profile (about, address, websites, …). */
+  profile: BusinessProfileApi;
+  /** Block / unblock users. */
+  blockUsers: BlockUsersApi;
 }
 
 export type ICreateBot = (
   fromPhoneNumberId: string,
   accessToken: string,
   options?: {
+    /** Graph API version, e.g. `v21.0`. Defaults to `v20.0`. */
     version?: string;
+    /** WhatsApp Business Account id — required only for `bot.templates.*`. */
+    wabaId?: string;
+    /** Meta app secret — enables webhook signature verification when passed to the route. */
+    appSecret?: string;
   },
 ) => Bot;

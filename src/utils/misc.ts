@@ -39,6 +39,10 @@ export interface FreeFormObjectMap {
     address?: string;
   };
   contacts: Array<{
+    /** vCard string — present when the user shared a contact directly (Meta 2026). */
+    vcard?: string;
+    /** `contact_request` (tapped a REQUEST_CONTACT_INFO button) or `other`. */
+    origin?: 'contact_request' | 'other';
     addresses?: Array<{
       city?: string;
       country?: string;
@@ -85,6 +89,11 @@ export interface FreeFormObjectMap {
     title: string;
     description?: string;
   };
+  /** Quick-reply button tap on a template message. */
+  button: {
+    text: string;
+    payload?: string;
+  };
   user_changed_number: {
     body: string;
     new_wa_id: string;
@@ -115,18 +124,98 @@ export interface FreeFormObjectMap {
     text?: string;
   };
   system: {
+    /** Human-readable description of the change. */
     body: string;
+    /** Legacy: new phone number when a user changed number (pre-username era). */
     new_wa_id?: string;
+    /**
+     * `customer_changed_number` | `customer_identity_changed` |
+     * `user_changed_user_id` (BSUID regenerated after a phone-number change).
+     */
     type: string;
-    user_id?: string; // BSUID update
+    /** New wa_id (phone) after the change, when available. */
+    wa_id?: string;
+    /** New BSUID after the change (`user_changed_user_id`). */
+    user_id?: string;
+    /** New parent BSUID after the change, if parent BSUIDs are enabled. */
+    parent_user_id?: string;
   };
   status: {
     id: string;
-    status: string;
+    /** `sent` | `delivered` | `read` | `failed` */
+    status: 'sent' | 'delivered' | 'read' | 'failed';
     timestamp: string;
-    recipient_id: string;
+    /** Recipient phone number. Omitted when sent to a BSUID with no phone available. */
+    recipient_id?: string;
+    /** Recipient BSUID. Always present for delivered/read; omitted on `failed` sent-to-phone. */
     recipient_user_id?: string;
-    errors?: any[];
+    /** Recipient parent BSUID, when parent BSUIDs are enabled. */
+    recipient_parent_user_id?: string;
+    conversation?: {
+      id: string;
+      origin?: { type: string };
+      expiration_timestamp?: string;
+    };
+    pricing?: {
+      billable?: boolean;
+      pricing_model?: string;
+      category?: string;
+      type?: string;
+    };
+    errors?: Array<{
+      code: number;
+      title: string;
+      message?: string;
+      error_data?: { details?: string };
+      href?: string;
+    }>;
+  };
+  /** A message the user edited on their device (`edit` webhook). */
+  edit: {
+    /** wamid of the original message that was edited. */
+    original_message_id: string;
+    /** The new message content, in the same shape as an incoming message. */
+    message: Record<string, unknown> & { type: string };
+  };
+  /** A message the user deleted for everyone (`revoke` webhook). */
+  revoke: {
+    /** wamid of the message that was revoked. */
+    original_message_id: string;
+  };
+  /** A message type this library does not (yet) model. Carries the raw object. */
+  unsupported: {
+    raw: Record<string, unknown>;
+    errors?: Array<{ code: number; title: string; message?: string }>;
+  };
+  /**
+   * A WhatsApp user's BSUID changed (`user_id_update` webhook). Persist the mapping
+   * from `previous` to `current` so you keep conversation continuity.
+   */
+  user_id_update: {
+    /** Phone number, if still available. */
+    wa_id?: string;
+    detail?: string;
+    previous: string;
+    current: string;
+    parent_previous?: string;
+    parent_current?: string;
+    /** @deprecated use `previous` */
+    old_user_id?: string;
+    /** @deprecated use `current` */
+    new_user_id?: string;
+  };
+  /** A business username status change (`business_username_updates` webhook). */
+  business_username_updates: {
+    display_phone_number?: string;
+    username?: string;
+    /** `approved` | `deleted` | `reserved` */
+    status: 'approved' | 'deleted' | 'reserved';
+  };
+  /** @deprecated alias kept for backwards compatibility; use `business_username_updates`. */
+  business_username_update: {
+    user_id?: string;
+    username?: string;
+    status?: string;
   };
 }
 

@@ -3,8 +3,9 @@
 // User-facing result types
 export interface SendMessageResult {
   messageId: string;
-  phoneNumber: string;
-  whatsappId: string;
+  phoneNumber?: string;
+  whatsappId?: string;
+  userId?: string;
   success?: boolean;
 }
 
@@ -14,11 +15,12 @@ export interface UploadMediaResult {
 
 // Official API response types
 export interface OfficialSendMessageResult {
-  success: true;
+  success?: boolean;
   messaging_product: 'whatsapp';
   contacts: {
     input: string;
-    wa_id: string;
+    wa_id?: string;
+    user_id?: string;
   }[];
   messages: {
     id: string;

@@ -47,6 +47,59 @@ const getBaseAxiosClient = (
   return client;
 };
 
+/**
+ * Graph API client NOT scoped to a phone number — for account-level resources
+ * (templates, username, business profile, block list). Base URL is
+ * `https://graph.facebook.com/<version>`.
+ */
+export const getGraphAxiosClient = (
+  accessToken: string,
+  version: string = 'v20.0',
+): AxiosInstance => {
+  const client = axios.create({
+    baseURL: `https://graph.facebook.com/${version}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    httpAgent: new http.Agent({ family: 4 }),
+    httpsAgent: new https.Agent({ family: 4 }),
+  });
+
+  client.interceptors.request.use((config) => {
+    DebugLogger.logOutgoingRequest(config);
+    return config;
+  });
+  client.interceptors.response.use(
+    (response) => {
+      DebugLogger.logResponse(response);
+      return response;
+    },
+    (error) => {
+      DebugLogger.logError(error);
+      return Promise.reject(error);
+    },
+  );
+
+  return client;
+};
+
+/** Shared error unwrapping for the account-level Graph APIs. */
+export const graphRequest = async <T>(
+  call: () => Promise<{ data: T }>,
+): Promise<T> => {
+  try {
+    const { data } = await call();
+    return data;
+  } catch (err: unknown) {
+    if ((err as AxiosError)?.response) {
+      throw (err as AxiosError).response?.data;
+    }
+    throw err;
+  }
+};
+
 // Client for messages endpoint
 export const getMessagesAxiosClient = (
   fromPhoneNumberId: string,
@@ -98,6 +151,7 @@ const transformResponse = <K extends keyof ApiPathResponseMap>(
       messageId: result?.messages?.[0]?.id,
       phoneNumber: result?.contacts?.[0]?.input,
       whatsappId: result?.contacts?.[0]?.wa_id,
+      userId: result?.contacts?.[0]?.user_id,
       success: result?.success,
     };
   }
