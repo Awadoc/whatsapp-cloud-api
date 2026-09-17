@@ -351,7 +351,11 @@ export const parseWebhookPayload = (
   body: any,
   fromPhoneNumberId: string,
 ): ParseResult => {
-  if (!body || body.object !== 'whatsapp_business_account') {
+  // Only require a truthy `object` — Meta's real payloads are always
+  // `whatsapp_business_account`, but we don't hard-fail on the exact string so a
+  // caller proxying multiple webhook types to one handler (or a test fixture using
+  // a placeholder value) isn't rejected for a field this library doesn't otherwise use.
+  if (!body || !body.object) {
     return { status: 404, events: [] };
   }
 

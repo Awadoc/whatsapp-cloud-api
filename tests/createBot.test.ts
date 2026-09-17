@@ -412,16 +412,24 @@ describe('server functions', () => {
     expect(text).toBe(challenge);
   });
 
-  test('send invalid body', async () => {
-    const sendRequest = (data: unknown) => {
-      const req = request(app).post(webhookPath);
-      return req.send(data as object).expect(200);
-    };
+  test('rejects a body with no "object" field', async () => {
+    // No `object` field at all means this isn't a recognisable webhook payload — the
+    // one case that should NOT be acknowledged with 200.
+    const sendRequest = (data: unknown) => request(app)
+      .post(webhookPath)
+      .send(data as object)
+      .expect(200);
 
+    await expect(sendRequest({})).rejects.toThrow();
+    await expect(sendRequest({ entry: [] })).rejects.toThrow();
+  });
+
+  test('acknowledges well-formed-but-empty webhook shapes with 200 (does not retry-storm Meta)', async () => {
+    // These all have an `object`, so they're acknowledged even though there is nothing
+    // to dispatch — in particular, a statuses-only payload with no messages MUST return
+    // 200, or Meta retries every delivery/read receipt indefinitely.
     const data = [
-      {},
       { object: 'abcd' },
-      { entry: [] },
       { object: 'abcd', entry: [{ changes: [] }] },
       { object: 'abcd', entry: [{ changes: [{ value: { statuses: [] } }] }] },
       { object: 'abcd', entry: [{ changes: [{ value: { messages: [] } }] }] },
@@ -429,7 +437,7 @@ describe('server functions', () => {
 
     for (let i = 0; i < data.length; i += 1) {
       // eslint-disable-next-line no-await-in-loop
-      await expect(sendRequest(data[i])).rejects.toThrow();
+      await request(app).post(webhookPath).send(data[i]).expect(200);
     }
   });
 

@@ -563,7 +563,7 @@ const ok = verifyWebhookSignature(rawBodyBytes, req.headers['x-hub-signature-256
 | `GET` verification success | `200` + challenge |
 | `GET` verification failure | `403` |
 | Bad / missing signature (when `appSecret` set) | `401` |
-| Body is not a WhatsApp webhook | `404` |
+| Body has no `object` field at all | `404` |
 
 <a name="custom-server"></a>
 

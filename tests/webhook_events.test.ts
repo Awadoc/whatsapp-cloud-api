@@ -39,8 +39,20 @@ describe('HTTP status contract', () => {
     await request(makeApp()).post('/webhook').send(payload).expect(200);
   });
 
-  it('returns 404 for a non-whatsapp object', async () => {
-    await request(makeApp()).post('/webhook').send({ object: 'page' }).expect(404);
+  it('returns 404 when the body has no "object" field at all', async () => {
+    await request(makeApp()).post('/webhook').send({ entry: [] }).expect(404);
+  });
+
+  it('does not hard-fail on an unexpected "object" value (any truthy value passes through)', async () => {
+    // Meta always sends `whatsapp_business_account`, but this library doesn't use the
+    // exact value — only require it to be present, matching the pre-existing contract.
+    await request(makeApp())
+      .post('/webhook')
+      .send({
+        object: 'not-the-real-value',
+        entry: [{ changes: [{ value: { messages: [], metadata: { phone_number_id: phoneId } } }] }],
+      })
+      .expect(200);
   });
 
   it('returns 200 for an empty entry list', async () => {
