@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 3.2.0 (unreleased)
+## 3.2.0
 
 ### Added
 - **`status` events** — `bot.on('status', ...)` now fires for `sent` / `delivered` /
@@ -48,23 +48,6 @@
 ### Changed
 - `Message.from` and `Message.replyTarget` are now optional (`from` is absent for
   username users).
-
-## 3.2.0-alpha
-- **Full BSUID & Username Integration (April 2026 Compliance)**:
-  - **New `RecipientTarget` Pattern**: Support for type-safe targeting in all `send*` methods.
-  - **Target Helpers**: Introduced `Phone()` and `UserId()` wrappers for explicit recipient targeting.
-  - **`replyTarget` Property**: Every incoming message now includes a pre-computed `replyTarget` for seamless replies to both legacy and BSUID users.
-  - **Compliance Events**: Fully implemented handling and publishing for `user_id_update` and `business_username_update` webhook events.
-  - **Linked Portfolios**: Extraction of `from_parent_user_id` and `parent_user_id` for enterprise support.
-  - **Enhanced Profiles**: Added `username` and `parent_user_id` to webhook contact profiles.
-- **Enhanced Response Data**: `sendMessage` results now include the `userId` (BSUID) returned by the Meta API.
-### Fixed
-- Improved resilience to empty `from` strings in incoming webhooks (Username support).
-- Fixed type definitions for webhook payloads to include the `field` property.
-- Removed stale `country_code` from profile types (deprecated by Meta).
-- Fixed a bug where `user_id_update` events were acknowledged but not published.
-
----
 
 ## 3.1.3
 

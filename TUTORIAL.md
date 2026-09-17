@@ -75,10 +75,12 @@ This 4-part tutorial should help you get started on using the library quickly.
       bot.on('message', async (msg) => {
         console.log(msg);
 
+        // msg.replyTarget works whether the sender is identified by phone
+        // number or by BSUID — see the BSUID migration guide in docs/.
         if (msg.type === 'text') {
-          await bot.sendText(msg.from, 'Received your text message!');
+          await bot.sendText(msg.replyTarget, 'Received your text message!');
         } else if (msg.type === 'image') {
-          await bot.sendText(msg.from, 'Received your image!');
+          await bot.sendText(msg.replyTarget, 'Received your image!');
         }
       });
     } catch (err) {

@@ -26,10 +26,11 @@ When a flow completes, the message has the following structure:
 
 ```typescript
 interface FlowCompletionMessage {
-  // Sender's phone number
-  from: string;
+  // Sender's phone number — absent for users who have adopted a username
+  // and no phone number is available (see docs/BSUID_GUIDE.md)
+  from?: string;
 
-  // User's BSUID (if available)
+  // User's BSUID — the stable identifier once phone numbers become optional
   from_user_id?: string;
 
   // Contact name
@@ -121,7 +122,7 @@ bot.on('nfm_reply', async (msg) => {
     });
 
     // Send confirmation
-    await bot.sendText(msg.from, 'Thank you for your feedback!');
+    await bot.sendText(msg.replyTarget!, 'Thank you for your feedback!');
   }
 });
 ```
@@ -225,7 +226,7 @@ bot.on('nfm_reply', async (msg) => {
 
       if (!product_id || !quantity) {
         console.error('Invalid order data:', response);
-        await bot.sendText(msg.from, 'There was an issue with your order. Please try again.');
+        await bot.sendText(msg.replyTarget!, 'There was an issue with your order. Please try again.');
         return;
       }
 
@@ -233,7 +234,7 @@ bot.on('nfm_reply', async (msg) => {
     }
   } catch (error) {
     console.error('Error handling flow response:', error);
-    await bot.sendText(msg.from, 'Something went wrong. Please try again later.');
+    await bot.sendText(msg.replyTarget!, 'Something went wrong. Please try again later.');
   }
 });
 ```

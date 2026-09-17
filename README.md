@@ -1,9 +1,23 @@
 # whatsapp-cloud-api
 
+[![npm version](https://img.shields.io/npm/v/@awadoc/whatsapp-cloud-api.svg)](https://www.npmjs.com/package/@awadoc/whatsapp-cloud-api)
+[![tests](https://github.com/Awadoc/whatsapp-cloud-api/actions/workflows/tests.yml/badge.svg)](https://github.com/Awadoc/whatsapp-cloud-api/actions/workflows/tests.yml)
+[![license: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](./LICENSE)
+[![node](https://img.shields.io/node/v/@awadoc/whatsapp-cloud-api.svg)](package.json)
+
 A modern Node.js wrapper for [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/) with full TypeScript support. Built to send and receive messages, handle webhooks via Express or Next.js, and scale cleanly in your apps.
 
 > **Forked from:** [tawn33y/whatsapp-cloud-api](https://github.com/tawn33y/whatsapp-cloud-api) _(Archived)_\
 > Maintained with extended support, modular routing, and Next.js support.
+
+## 📖 Documentation
+
+| | |
+| --- | --- |
+| **[API Reference](./API.md)** | Every method, event and payload shape |
+| **[BSUID Migration Guide](./docs/BSUID_GUIDE.md)** | Moving from phone numbers to Business-Scoped User IDs |
+| **[WhatsApp Flows](./docs/flows/README.md)** | Building and hosting interactive Flows |
+| **[Changelog](./CHANGELOG.md)** | Release history |
 
 ---
 
@@ -42,7 +56,9 @@ app.use("/webhook", getExpressRoute(phoneId, { webhookVerifyToken }));
 bot.on("message", async (msg) => {
   console.log(msg);
   if (msg.type === "text") {
-    await bot.sendText(msg.from, "Got your text!");
+    // msg.replyTarget works whether the sender was identified by phone
+    // number or by BSUID (see the BSUID migration guide below).
+    await bot.sendText(msg.replyTarget!, "Got your text!");
   }
 });
 
@@ -201,12 +217,19 @@ await bot.sendTemplate(to, "hello_world", "en_US");
 
 ## 🔧 Custom Webhook Path or Middleware
 
-You can easily change the webhook route or plug into your existing middleware:
+`getExpressRoute` is a standalone export (not a method on `bot`) — mount it at
+whatever path you like, and inject your own middleware ahead of the parser:
 
 ```ts
+import { getExpressRoute } from "@awadoc/whatsapp-cloud-api/express";
+
 app.use(
   "/custom-whatsapp-hook",
-  bot.getExpressRoute({ webhookVerifyToken: "secret_token" }),
+  getExpressRoute(phoneId, {
+    webhookVerifyToken: "secret_token",
+    appSecret: process.env.APP_SECRET,     // verifies X-Hub-Signature-256
+    useMiddleware: (router) => router.use(myLoggingMiddleware),
+  }),
 );
 ```
 
@@ -272,4 +295,4 @@ Forks, issues, and PRs are welcome.
 
 ## 🧼 License
 
-MIT
+[GPL-3.0](./LICENSE)
