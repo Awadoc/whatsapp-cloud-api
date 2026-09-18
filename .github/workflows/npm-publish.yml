@@ -11,6 +11,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    # Must match the GitHub Environment npm's Trusted Publisher config for this
+    # package is scoped to (npmjs.com -> package -> Settings -> Trusted Publisher).
+    # Without this, the OIDC token this job presents carries no environment claim,
+    # npm's matcher doesn't recognize the run as authorized, and `npm publish`
+    # fails with a 404 on the registry PUT even though everything else succeeds.
+    environment: production
+
     # Required for OIDC authentication
     permissions:
       id-token: write
@@ -28,6 +35,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1. Pin explicitly rather than
+      # trusting whatever version happens to be bundled with the Node.js release above.
+      - name: Ensure a trusted-publishing-capable npm version
+        run: npm install -g npm@^11.5.1
 
       - name: Run linting
         run: npm run lint
