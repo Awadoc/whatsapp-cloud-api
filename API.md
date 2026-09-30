@@ -576,6 +576,35 @@ import { verifyWebhookSignature } from '@awadoc/whatsapp-cloud-api';
 const ok = verifyWebhookSignature(rawBodyBytes, req.headers['x-hub-signature-256'], appSecret);
 ```
 
+#### Observing failed verification: `onInvalidSignature`
+
+Because a failed check is rejected with a plain 401 before anything is parsed,
+you'd otherwise have no visibility into *why* — was it an attack, a misconfigured
+secret, or a stale integration? Pass `onInvalidSignature` alongside `appSecret` to
+find out:
+
+```ts
+app.use('/webhook', getExpressRoute(phoneId, {
+  webhookVerifyToken,
+  appSecret,
+  onInvalidSignature: ({ reason, signatureHeader, rawBody, timestamp }) => {
+    // reason: 'missing_header' | 'invalid_signature'
+    logger.warn('whatsapp webhook rejected', { reason, timestamp });
+  },
+}));
+```
+
+This is a security/observability hook, **not** another message event — it is
+deliberately not reachable via `bot.on(...)`. Everything delivered through
+`bot.on(...)` is implicitly guaranteed to have passed signature verification
+(once `appSecret` is set); mixing unauthenticated payloads into that same channel
+would quietly undermine that guarantee. Treat `rawBody` here as untrusted input
+for logging/alerting only — never parse it as a real WhatsApp message.
+
+The callback runs synchronously and its return value is ignored; the response is
+always 401 regardless of what it does, and a thrown error inside it is caught and
+swallowed so a broken logger can never take down your webhook.
+
 #### `webhookVerifyToken` vs `appSecret` — they protect two different things
 
 These are easy to conflate because they're both "a secret string for the

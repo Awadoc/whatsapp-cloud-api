@@ -44,7 +44,9 @@ export {
   verifyWebhookChallenge,
   handleWebhookPost,
 } from './webhook';
-export type { WebhookOptions, ParsedEvent, ParseResult } from './webhook';
+export type {
+  WebhookOptions, ParsedEvent, ParseResult, InvalidSignatureInfo,
+} from './webhook';
 export { verifyWebhookSignature } from './utils/signature';
 
 // Account-level management APIs.
