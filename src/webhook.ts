@@ -29,6 +29,24 @@ export interface WebhookOptions {
    * carries a valid `X-Hub-Signature-256` header. Strongly recommended in production.
    */
   appSecret?: string;
+  /**
+   * Called when a POST fails signature verification, right before responding 401.
+   * Only fires when `appSecret` is set. Use this for logging, metrics, or alerting —
+   * **do not** treat `rawBody` as a real WhatsApp message: it has not been
+   * authenticated as coming from Meta, unlike everything delivered via `bot.on(...)`.
+   */
+  onInvalidSignature?: (info: InvalidSignatureInfo) => void;
+}
+
+export interface InvalidSignatureInfo {
+  /** `missing_header` when no `X-Hub-Signature-256` header was sent at all. */
+  reason: 'missing_header' | 'invalid_signature';
+  /** The raw request body, exactly as received. Untrusted — do not process as a message. */
+  rawBody: string | Buffer;
+  /** The `X-Hub-Signature-256` header value, if one was present. */
+  signatureHeader?: string;
+  /** Unix ms timestamp of the request. */
+  timestamp: number;
 }
 
 // ============================================================================
@@ -403,12 +421,23 @@ export const handleWebhookPost = (
   DebugLogger.logIncomingWebhook(body);
 
   if (options?.appSecret) {
-    const ok = verifyWebhookSignature(
-      rawBody ?? JSON.stringify(body ?? {}),
-      signatureHeader,
-      options.appSecret,
-    );
-    if (!ok) return { status: 401 };
+    const resolvedRawBody = rawBody ?? JSON.stringify(body ?? {});
+    const ok = verifyWebhookSignature(resolvedRawBody, signatureHeader, options.appSecret);
+    if (!ok) {
+      // Best-effort: a throwing consumer callback must never stop us from
+      // responding 401, and must never crash the server processing the webhook.
+      try {
+        options.onInvalidSignature?.({
+          reason: signatureHeader ? 'invalid_signature' : 'missing_header',
+          rawBody: resolvedRawBody,
+          signatureHeader,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        DebugLogger.logError(err);
+      }
+      return { status: 401 };
+    }
   }
 
   const { status, events } = parseWebhookPayload(body, fromPhoneNumberId);

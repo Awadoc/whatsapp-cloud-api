@@ -157,6 +157,57 @@ describe('signature verification', () => {
       .send(body)
       .expect(200);
   });
+
+  it('calls onInvalidSignature with reason "missing_header" when no header is sent', async () => {
+    const onInvalidSignature = jest.fn();
+    await request(makeApp({ appSecret: secret, onInvalidSignature }))
+      .post('/webhook')
+      .set('content-type', 'application/json')
+      .send(body)
+      .expect(401);
+
+    expect(onInvalidSignature).toHaveBeenCalledTimes(1);
+    const info = onInvalidSignature.mock.calls[0][0];
+    expect(info.reason).toBe('missing_header');
+    expect(info.signatureHeader).toBeUndefined();
+    expect(typeof info.timestamp).toBe('number');
+  });
+
+  it('calls onInvalidSignature with reason "invalid_signature" for a wrong signature', async () => {
+    const onInvalidSignature = jest.fn();
+    await request(makeApp({ appSecret: secret, onInvalidSignature }))
+      .post('/webhook')
+      .set('content-type', 'application/json')
+      .set('x-hub-signature-256', sign(body, 'wrong-secret'))
+      .send(body)
+      .expect(401);
+
+    expect(onInvalidSignature).toHaveBeenCalledTimes(1);
+    expect(onInvalidSignature.mock.calls[0][0].reason).toBe('invalid_signature');
+  });
+
+  it('does not call onInvalidSignature when the signature is valid', async () => {
+    const onInvalidSignature = jest.fn();
+    await request(makeApp({ appSecret: secret, onInvalidSignature }))
+      .post('/webhook')
+      .set('content-type', 'application/json')
+      .set('x-hub-signature-256', sign(body, secret))
+      .send(body)
+      .expect(200);
+
+    expect(onInvalidSignature).not.toHaveBeenCalled();
+  });
+
+  it('still responds 401 even if onInvalidSignature throws', async () => {
+    const onInvalidSignature = jest.fn(() => { throw new Error('logger is down'); });
+    await request(makeApp({ appSecret: secret, onInvalidSignature }))
+      .post('/webhook')
+      .set('content-type', 'application/json')
+      .send(body)
+      .expect(401);
+
+    expect(onInvalidSignature).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('user_id_update (Meta 2026 shape)', () => {

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 3.3.0
+
+### Added
+- **`onInvalidSignature` webhook option** — pass it alongside `appSecret` to
+  `getExpressRoute` / `getNextAppRouteHandlers` / `getNextPagesApiHandler` to
+  observe (log, alert on, rate-limit) requests that fail `X-Hub-Signature-256`
+  verification. Receives `{ reason: 'missing_header' | 'invalid_signature',
+  rawBody, signatureHeader?, timestamp }`. Deliberately not exposed via
+  `bot.on(...)` — see [API.md](./API.md#signature-verification) for why.
+
 ## 3.2.0
 
 ### Added
